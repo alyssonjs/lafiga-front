@@ -1,0 +1,32 @@
+@import 'flatpickr/dist/flatpickr.min.css';
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+  /* Paleta Principal */
+  --color-primary: #A21D21;    /* Vermelho intenso - elementos principais */
+  --color-secondary: #72161A;  /* Vermelho escuro - elementos secundários */
+  --color-accent: #DC8126;     /* Laranja - destaques */
+  --color-highlight: #F7C90B;  /* Amarelo - elementos de atenção */
+  --color-dark: #1e1e1e;       /* Preto azeitona - fundo principal */
+  --color-medium: #411117;     /* Vinho - elementos estruturais */
+  
+  /* Textos */
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #F7C90B;
+  --glow-effect: 0 0 10px rgba(0, 230, 118, 0.5), 0 0 20px rgba(0, 230, 118, 0.3); /* Efeito de brilho */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Press Start 2P', cursive;
+  background-color: #1e1e1e;
+  color: var(--color-text-primary);
+}
+
+input, textarea, select {
+  padding: 7px;
+  background-color: var(--color-dark);
+  border: 2px solid var(--color-secondary);
+  color: var(--color-text-secondary);
+}

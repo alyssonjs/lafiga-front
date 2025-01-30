@@ -1,0 +1,47 @@
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background-color: var(--color-light);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .label {
+    font-size: 16px;
+    color: var(--color-text-primary);
+  }
+  
+  .inputText {
+    font-family: 'Press Start 2P', cursive;
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid var(--color-secondary);
+    border-radius: 8px;
+    margin-top: 5px;
+  }
+  
+  .inputText:focus {
+    border-color: var(--color-primary);
+    outline: none;
+  }
+  
+  .submitButton {
+    font-family: 'Press Start 2P', cursive;
+    background-color: var(--color-primary);
+    color: var(--color-text-primary);
+    border: none;
+    padding: 12px 25px;
+    font-size: 14   px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .submitButton:hover {
+    background-color: var(--color-secondary);
+    transform: translateY(-3px);
+  }
+  
