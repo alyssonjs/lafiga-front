@@ -1,0 +1,140 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 600;
+  outline: none;
+  background-color: var(--default);
+  color: var(--text-primary);
+  border: 4px solid var(--border);
+  border-radius: 0px;
+  /* transition: background-color 0.2s ease; */
+  height: 2.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-family: 'Press Start 2P', cursive;
+  box-shadow: 4px 4px 0px var(--border);
+}
+
+.button:hover {
+  cursor: pointer;
+  background-color: var(--default-hover);
+  transition: background-color 0.2s ease;
+  box-shadow: none;
+  transform: translate(4px, 4px);
+}
+
+.button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--foreground);
+}
+
+.button:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.button:disabled:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.button[data-variant="primary"] {
+  background-color: var(--primary);
+  color: var(--text-secondary);
+  transition: background-color 0.2s ease;
+}
+
+.button[data-variant="primary"]:hover {
+  background-color: var(--primary-hover);
+}
+
+.button[data-variant="secondary"] {
+  background-color: var(--secondary);
+  color: var(--text-secondary);
+  transition: background-color 0.2s ease;
+}
+
+.button[data-variant="secondary"]:hover {
+  background-color: var(--secondary-hover);
+}
+
+.button[data-variant="accent"] {
+  background-color: var(--accent);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease;
+}
+
+.button[data-variant="accent"]:hover {
+  background-color: var(--accent-hover);
+}
+
+.button[data-variant="highlight"] {
+  background-color: var(--highlight);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease;
+}
+
+.button[data-variant="highlight"]:hover {
+  background-color: var(--highlight-hover);
+}
+
+.button[data-variant="outline"] {
+  border: 4px solid var(--border);
+  background-color: var(--background);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.button[data-variant="outline"]:hover {
+  cursor: pointer;
+  /* background-color: var(--foreground); */
+}
+
+.button[data-variant="medium"] {
+  background-color: var(--medium);
+  color: var(--foreground);
+  transition: background-color 0.2s ease;
+}
+
+.button[data-variant="medium"]:hover {
+  background-color: var(--medium);
+}
+
+.button[data-variant="icon"] {
+  background-color: var(--foreground);
+  border: none;
+  color: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  width: 2rem;
+  padding: 0;
+  border-radius: 9999px;
+}
+
+.button[data-variant="icon"]:hover {
+  background-color: var(--accent);
+}
+
+.button[data-size="sm"] {
+  height: 2.25rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.button[data-size="lg"] {
+  height: 2.75rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.button[data-size="icon"] {
+  height: 2.5rem;
+  width: 2.5rem;
+}

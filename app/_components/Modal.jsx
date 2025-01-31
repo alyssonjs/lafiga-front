@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import styles from '../styles/Modal.module.css';
+import styles from '../_styles/Modal.module.css';
 
 
 const Modal = ({ isOpen, onClose, children }) => {

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import DatePicker from './DatePicker';
-import styles from '../styles/SessionForm.module.css';
+import styles from '../_styles/SessionForm.module.css';
+import Button from './Button';
 
 const SessionForm = ({ onSubmit }) => {
   const [date, setDate] = useState('');
@@ -49,7 +50,8 @@ const SessionForm = ({ onSubmit }) => {
         required
       />
 
-      <button type="submit" className={styles.submitButton}>Adicionar Sessão</button>
+      <Button type="submit" variant="success" size="lg">Adicionar Sessão</Button>
+      {/* <button type="submit" className={styles.submitButton}>Adicionar Sessão</button> */}
     </form>
   );
 };

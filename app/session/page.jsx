@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import Card from '../components/Card';
-import Modal from '../components/Modal';
-import SessionForm from '../components/SessionForm';
+import Card from '../_components/Card';
+import Modal from '../_components/Modal';
+import SessionForm from '../_components/SessionForm';
+import Button from '../_components/Button';
 
-import styles from '../styles/Session.module.css';
+import styles from '../_styles/Session.module.css';
 
 const SessionPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,9 +22,10 @@ const SessionPage = () => {
       <div className={styles.contentWrapper}>
         <div className={styles.sessionTitle}>
           <h1 className={styles.pageTitle}>Quadro de Sessões</h1>
-          <button className={styles.createButton} onClick={() => setIsModalOpen(true)}>
+          {/* <button className={styles.createButton} onClick={() => setIsModalOpen(true)}>
             Nova Sessão
-          </button>
+          </button> */}
+          <Button size="lg" onClick={() => setIsModalOpen(true)}>Nova Sessão</Button>
         </div>
         <div className={styles.cardsContainer}>
           {cards.map((card, index) => (

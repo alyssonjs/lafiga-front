@@ -25,8 +25,8 @@
   }
   
   .modalContent {
-    background-color: var(--color-medium);
-    border: 3px solid var(--color-primary);
+    background-color: var(--medium);
+    border: 3px solid var(--primary);
     padding: 20px;
     font-size: 14px;
     border-radius: 10px;

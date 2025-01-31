@@ -1,0 +1,61 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px; 
+  border: 4px solid var(--border); 
+  padding: 2px 1.25rem; 
+  font-size: 0.75rem;
+  font-weight: 600; 
+  outline: none; 
+  background-color: var(--primary); 
+  color: var(--text-secondary); 
+  width: max-content;
+}
+
+.badge:hover {
+  background-color: var(--background);
+  color: var(--text-secondary);
+}
+
+.badge[data-variant='highlight'] {
+  border: 4px solid var(--border); 
+  background-color: var(--highlight);
+  color: var(--text-primary); 
+}
+
+.badge[data-variant='highlight']:hover {
+  background-color: var(--background);
+  color: var(--text-secondary);
+}
+
+.badge[data-variant='highlight']:focus {
+  border-width: 2px; 
+  border-color: var(--ring); 
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.badge[data-variant='medium'] {
+  border: 4px solid var(--border); 
+  background-color: var(--medium); 
+  color: var(--medium-foreground);
+}
+
+.badge[data-variant='medium']:hover {
+  background-color: var(--background);
+  color: var(--text-secondary);
+}
+
+.badge[data-variant='medium']:focus {
+  background-color: var(--medium);
+}
+
+.badge[data-variant='outline'] {
+  color: var(--foreground);
+  background-color: transparent;
+  border: 4px solid var(--border);
+}
+
+.badge[data-variant='outline']:hover {
+  background-color: var(--background);
+  color: var(--text-secondary);
+}

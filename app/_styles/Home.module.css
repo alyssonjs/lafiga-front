@@ -3,15 +3,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-dark);
-  color: var(--color-text-primary);
+  background-color: var(--dark);
+  color: var(--text-primary);
   padding: 20px;
-}
-
-.sessionTitle {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
 }
 
 .cardsContainer {
@@ -25,9 +19,9 @@
 }
 
 .createButton {
-  background-color: var(--color-secondary);
-  border: 2px solid var(--color-highlight);
-  color: var(--color-text-primary);
+  background-color: var(--secondary);
+  border: 2px solid var(--highlight);
+  color: var(--text-primary);
   padding: 12px 25px;
   font-family: 'Press Start 2P', cursive;
   font-size: 14px;
@@ -40,5 +34,5 @@
 
 .createButton:hover {
   transform: translate(3px, 3px);
-  background-color: var(--color-accent);
+  background-color: var(--accent);
 }

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
-import styles from '../styles/DatePicker.module.css';
+import styles from '../_styles/DatePicker.module.css';
 
 const DatePicker = ({ onChange }) => {
   const inputRef = useRef(null);

@@ -3,16 +3,30 @@
 
 :root {
   /* Paleta Principal */
-  --color-primary: #A21D21;    /* Vermelho intenso - elementos principais */
-  --color-secondary: #72161A;  /* Vermelho escuro - elementos secundários */
-  --color-accent: #DC8126;     /* Laranja - destaques */
-  --color-highlight: #F7C90B;  /* Amarelo - elementos de atenção */
-  --color-dark: #1e1e1e;       /* Preto azeitona - fundo principal */
-  --color-medium: #411117;     /* Vinho - elementos estruturais */
+  --default: #ffffff;
+  --default-hover: #F0F0F0;
+  --primary: #A21D21;    /* Vermelho intenso - elementos principais */
+  --primary-hover: #88181B; 
+  --secondary: #72161A;  /* Vermelho escuro - elementos secundários */
+  --secondary-hover: #72161A;
+  --accent: #DC8126;     /* Laranja - destaques */
+  --accent-hover: #C97320;
+  --highlight: #F7C90B;  /* Amarelo - elementos de atenção */
+  --highlight-hover: #D9AF09;
+  --medium: #411117;     /* Vinho - elementos estruturais */
+  --medium-hover: #300D12;
+  --dark: #1e1e1e;       /* Preto azeitona - fundo principal */
+
+  --background: #1e1e1e;
+  --foreground: #FFFFFF;
+  --border: #000;
+  --border-size: 4px;
+  --ring: #000;
+  --muted: #6C757D;
   
   /* Textos */
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #F7C90B;
+  --text-primary: #000;
+  --text-secondary: #fff;;
   --glow-effect: 0 0 10px rgba(0, 230, 118, 0.5), 0 0 20px rgba(0, 230, 118, 0.3); /* Efeito de brilho */
 }
 
@@ -20,13 +34,14 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Press Start 2P', cursive;
-  background-color: #1e1e1e;
-  color: var(--color-text-primary);
+  background-color: var(--background);
+  color: var(--text-primary);
+  /* @apply antialiased; */
 }
 
 input, textarea, select {
   padding: 7px;
-  background-color: var(--color-dark);
-  border: 2px solid var(--color-secondary);
-  color: var(--color-text-secondary);
+  background-color: var(--dark);
+  border: 2px solid var(--secondary);
+  color: var(--text-secondary);
 }
