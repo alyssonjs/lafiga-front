@@ -15,9 +15,9 @@
   --highlight-hover: #D9AF09;
   --medium: #411117;     /* Vinho - elementos estruturais */
   --medium-hover: #300D12;
-  --dark: #1e1e1e;       /* Preto azeitona - fundo principal */
+  --dark: #2d2d2d;       /* Preto azeitona - fundo principal */
 
-  --background: #1e1e1e;
+  --background: #2d2d2d;
   --foreground: #FFFFFF;
   --border: #000;
   --border-size: 4px;
@@ -44,4 +44,8 @@ input, textarea, select {
   background-color: var(--dark);
   border: 2px solid var(--secondary);
   color: var(--text-secondary);
+}
+
+main {
+  padding-top: 120px;
 }

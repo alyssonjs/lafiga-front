@@ -1,29 +1,31 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import DatePicker from './DatePicker';
-import styles from '../_styles/SessionForm.module.css';
-import Button from './Button';
+import { useState } from "react";
+import DatePicker from "./DatePicker";
+import styles from "../_styles/SessionForm.module.css";
+import Button from "./Button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./Card";
+import Input from "./Input";
 
 const SessionForm = ({ onSubmit }) => {
-  const [date, setDate] = useState('');
-  const [title, setTitle] = useState('');
-  const [characters, setCharacters] = useState('');
+  const [date, setDate] = useState("");
+  const [title, setTitle] = useState("");
+  const [characters, setCharacters] = useState("");
 
   const handleSubmit = (event) => {
     event.preventDefault();
     onSubmit({
       date,
       title,
-      characters: characters.split(',').map((char) => char.trim()),
+      characters: characters.split(",").map((char) => char.trim()),
     });
     resetForm();
   };
 
   const resetForm = () => {
-    setDate('');
-    setTitle('');
-    setCharacters('');
+    setDate("");
+    setTitle("");
+    setCharacters("");
   };
 
   return (
@@ -50,7 +52,9 @@ const SessionForm = ({ onSubmit }) => {
         required
       />
 
-      <Button type="submit" variant="success" size="lg">Adicionar Sessão</Button>
+      <Button type="submit" variant="success" size="lg">
+        Adicionar Sessão
+      </Button>
       {/* <button type="submit" className={styles.submitButton}>Adicionar Sessão</button> */}
     </form>
   );

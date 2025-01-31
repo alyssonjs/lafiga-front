@@ -9,9 +9,12 @@
 }
 
 .sessionTitle {
+  color: var(--text-secondary);
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  width: -webkit-fill-available;
 }
 
 .cardsContainer {

@@ -1,12 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Card from '../_components/Card';
-import Modal from '../_components/Modal';
-import SessionForm from '../_components/SessionForm';
-import Button from '../_components/Button';
+import { useState } from "react";
+import Card from "../_components/Card";
+import Modal from "../_components/Modal";
+import SessionForm from "../_components/SessionForm";
+import Button from "../_components/Button";
+import Dialog from "../_components/Button";
 
-import styles from '../_styles/Session.module.css';
+import styles from "../_styles/Session.module.css";
 
 const SessionPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,14 +20,16 @@ const SessionPage = () => {
 
   return (
     <div className={styles.pageContainer}>
-      <div className={styles.contentWrapper}>
-        <div className={styles.sessionTitle}>
-          <h1 className={styles.pageTitle}>Quadro de Sessões</h1>
-          {/* <button className={styles.createButton} onClick={() => setIsModalOpen(true)}>
+      <div className={styles.sessionTitle}>
+        <h3 className={styles.pageTitle}>Quadro de Sessões</h3>
+        {/* <button className={styles.createButton} onClick={() => setIsModalOpen(true)}>
             Nova Sessão
           </button> */}
-          <Button size="lg" onClick={() => setIsModalOpen(true)}>Nova Sessão</Button>
-        </div>
+        <Button size="lg" onClick={() => setIsModalOpen(true)}>
+          Nova Sessão
+        </Button>
+      </div>
+      <div className={styles.contentWrapper}>
         <div className={styles.cardsContainer}>
           {cards.map((card, index) => (
             <Card key={index} {...card} />

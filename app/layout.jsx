@@ -15,7 +15,8 @@ export default function RootLayout({ children }) {
     <html lang="pt-BR">
       <body className={start.className}>
         <Navbar />
-        {children}
+        <main>{children}</main>
+        <div id="dialogRoot"></div>
       </body>
     </html>
   );

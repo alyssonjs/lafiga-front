@@ -1,3 +1,5 @@
+"use client";
+
 import Button from "../_components/Button";
 import {
   Card,
@@ -10,8 +12,18 @@ import {
 import Input from "../_components/Input";
 import Badge from "../_components/Badge";
 import DatePicker from "../_components/DatePicker";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../_components/Dialog";
 
 const SessionPage = () => {
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <>
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
@@ -79,6 +91,31 @@ const SessionPage = () => {
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
         <DatePicker />
+      </div>
+
+      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <Button onClick={() => setIsOpen(true)}>Show Dialog Modal</Button>
+        {isOpen && (
+          <Dialog onClose={() => setIsOpen(false)}>
+            <DialogHeader>
+              <DialogTitle>Title</DialogTitle>
+              <DialogDescription>Description</DialogDescription>
+            </DialogHeader>
+            <DialogContent>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "1em" }}
+              >
+                <Input type="email" placeholder="Input" />
+                <Input type="email" placeholder="Input 2" />
+              </div>
+            </DialogContent>
+            <DialogFooter>
+              <Button variant="primary" onClick={() => setIsOpen(false)}>
+                Close Dialog Modal
+              </Button>
+            </DialogFooter>
+          </Dialog>
+        )}
       </div>
     </>
   );
