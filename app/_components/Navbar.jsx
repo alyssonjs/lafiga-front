@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import styles from '../styles/NavBar.module.css';
+import styles from '../_styles/NavBar.module.css';
 import Image from 'next/image';
 
 const Navbar = () => {
