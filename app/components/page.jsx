@@ -1,8 +1,7 @@
 "use client";
 
 import Button from "../_components/Button";
-import {
-  Card,
+import Card, {
   CardContent,
   CardDescription,
   CardFooter,
@@ -22,8 +21,24 @@ import {
   DialogTitle,
 } from "../_components/Dialog";
 
-const SessionPage = () => {
+import Select, { SelectOption } from "../_components/Select";
+
+const ComponentsPage = () => {
   const [isOpen, setIsOpen] = useState(false);
+
+  let options = [
+    { id: 1, name: "Australia" },
+    { id: 2, name: "Brazil" },
+    { id: 3, name: "China" },
+    { id: 4, name: "Denmark" },
+    { id: 5, name: "Egypt" },
+    { id: 6, name: "Finland" },
+    { id: 7, name: "Ghana" },
+    { id: 8, name: "Hungary" },
+    { id: 9, name: "India" },
+    { id: 10, name: "Japan" },
+  ];
+
   return (
     <>
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
@@ -83,6 +98,14 @@ const SessionPage = () => {
       </div>
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <Select
+          placeholder="MultipleSelect"
+          options={options}
+          multiselect
+        />
+      </div>
+
+      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
         <Badge>Badge</Badge>
         <Badge variant="highlight">Highlight</Badge>
         <Badge variant="outline">Outline</Badge>
@@ -91,6 +114,10 @@ const SessionPage = () => {
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
         <DatePicker />
+      </div>
+
+      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <Select placeholder="Select" options={options} />
       </div>
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
@@ -121,4 +148,4 @@ const SessionPage = () => {
   );
 };
 
-export default SessionPage;
+export default ComponentsPage;

@@ -1,0 +1,115 @@
+.calendarRoot {
+  width: -webkit-fill-available;
+  padding: 16px;
+}
+
+.dayOfWeekHeaderCell {
+  color: white;
+  background-color: transparent;
+  padding: 8px 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.daysOfWeek {
+  width: 100%;
+  display: grid;
+  padding-top: 8px;
+  padding-left: 8px;
+  grid-template-columns: repeat(7, 1fr);
+  grid-column-gap: 16px;
+  grid-row-gap: 16px;
+}
+
+.daysGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-column-gap: 16px;
+  grid-row-gap: 16px;
+}
+
+.daysGrid {
+  height: 700px;
+  position: relative;
+  background-color: transparent;
+}
+
+.navigationHeader {
+  display: flex;
+  justify-content: space-between;
+}
+
+.monthNavArrowButtons {
+  display: flex;
+  gap: 16px;
+}
+
+.dateDisplay {
+  padding: 16px 0px;
+  color: var(--text-secondary)
+}
+
+.dayToday {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+
+  border: 4px solid var(--border);
+  background-color: var(--highlight);
+  color: var(--text-primary);
+  box-shadow: 4px 4px 0px var(--border);
+  text-decoration: none; 
+}
+
+.dayToday:hover {
+  cursor: pointer;
+  background-color: var(--highlight-hover);
+  transition: background-color 0.2s ease;
+  box-shadow: none;
+  transform: translate(4px, 4px);
+}
+
+.dayEnabled {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+
+  border: 4px solid var(--border);
+  background-color: var(--medium);
+  color: var(--text-secondary);
+  box-shadow: 4px 4px 0px var(--border);
+  text-decoration: none; 
+}
+
+.dayEnabled:hover {
+  cursor: pointer;
+  background-color: var(--medium-hover);
+  transition: background-color 0.2s ease;
+  box-shadow: none;
+  transform: translate(4px, 4px);
+}
+
+.dayDisabled {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: grey;
+  border: 4px solid var(--border);
+  box-shadow: none;
+  transform: translate(4px, 4px);
+  text-decoration: none; 
+}
+
+.dayContentWrapper {
+  padding: 8px;
+  text-decoration: none; 
+}
+
+.monthArrowButtons {
+  display: flex;
+  gap: 16px;
+}
+
