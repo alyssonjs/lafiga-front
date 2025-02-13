@@ -5,7 +5,7 @@ import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 import styles from '../_styles/DatePicker.module.css';
 
-const DatePicker = ({ onChange }) => {
+const DatePicker = ({ onChange, date = null }) => {
   const inputRef = useRef(null);
   const fpInstance = useRef(null);
 
@@ -23,7 +23,8 @@ const DatePicker = ({ onChange }) => {
         onReady: () => {
           // Aplica classes personalizadas aos elementos internos
           document.querySelector('.flatpickr-calendar')?.classList.add('custom-flatpickr');
-        }
+        },
+        defaultDate: date
       });
     }
 

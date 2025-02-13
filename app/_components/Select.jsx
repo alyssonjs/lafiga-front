@@ -37,7 +37,7 @@ const Select = ({ placeholder = "Placeholder", options, multiselect = false }) =
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
 
-      if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+      if (spaceBelow < 250 && spaceAbove > spaceBelow) {
         setListDirection("up");
       } else {
         setListDirection("down");

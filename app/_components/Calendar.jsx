@@ -77,14 +77,14 @@ const Calendar = ({ yearAndMonth, onYearAndMonthChange, handleNewSession }) => {
   const renderCard = (day) => {
     if (day.isFutureDay)
       return (
-        <div key={day.dateString} onClick={() => handleNewSession()} className={styles.dayEnabled}>
+        <div key={day.dateString} onClick={() => handleNewSession(day.dateString)} className={styles.dayEnabled}>
           {renderDay(day.dayOfMonth)}
         </div>
       );
 
     if (day.isToday) {
       return (
-        <div key={day.dateString} onClick={() => handleNewSession()} className={styles.dayToday}>
+        <div key={day.dateString} onClick={() => handleNewSession(day.dateString)} className={styles.dayToday}>
           {renderDay(day.dayOfMonth)}
         </div>
       );
