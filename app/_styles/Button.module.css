@@ -14,9 +14,12 @@
   padding-right: 1rem;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
-  box-shadow: 4px 4px 0px var(--border);
   font-family: inherit;
   font-size: inherit;
+  /* box-shadow: 4px 4px 0px var(--border); */
+
+  transition: 100ms ease;
+  box-shadow: 4px 4px 0 0 var(--border);
 }
 
 .button:hover {
@@ -24,6 +27,13 @@
   background-color: var(--default-hover);
   transition: background-color 0.2s ease;
   box-shadow: none;
+  box-shadow: 2px 2px 0 0 var(--border);
+  transform: translate(2px, 2px);
+}
+
+.button:active {
+  transition: 50ms ease;
+  box-shadow:  0 0 0 0 var(--border);
   transform: translate(4px, 4px);
 }
 
