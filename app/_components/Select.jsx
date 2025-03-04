@@ -87,6 +87,7 @@ const Select = ({ placeholder = "Placeholder", options, multiselect = false }) =
         className={`${styles.selectedText} ${
           showOptionList ? styles.active : ""
         }`}
+        tabindex="0"
         onClick={handleListDisplay}
       >
         {multiselect

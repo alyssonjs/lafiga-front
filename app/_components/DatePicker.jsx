@@ -33,7 +33,7 @@ const DatePicker = ({ onChange, date = null }) => {
         fpInstance.current.destroy();
       }
     };
-  }, [onChange]);
+  }, [onChange, date]);
 
   return (
     <input 

@@ -18,10 +18,18 @@
   width: -webkit-fill-available;
   border: 4px solid var(--border);
   color: var(--text-secondary);
-  
+
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.selectedText:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px var(--ring);
+  background-color: var(--foreground);
+  color: var(--text-primary);
 }
 
 .selectedText::after {

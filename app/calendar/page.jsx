@@ -15,12 +15,16 @@ import Button from "../_components/Button";
 import DatePicker from "../_components/DatePicker";
 import Select from "../_components/Select";
 import dayjs from "dayjs";
+import styles from "../_styles/CalendarPage.module.css";
 
 require("dayjs/locale/pt-br");
 dayjs.locale("pt-br");
 
 const CalendarPage = () => {
-  const [yearAndMonth, setYearAndMonth] = useState([2025, 2]);
+  const [yearAndMonth, setYearAndMonth] = useState([
+    dayjs().year(),
+    dayjs().month() + 1,
+  ]);
   const [isOpen, setIsOpen] = useState(false);
   const [date, setDate] = useState(null);
 
@@ -75,9 +79,14 @@ const CalendarPage = () => {
             </div>
           </DialogContent>
           <DialogFooter>
-            <Button variant="primary" onClick={() => setIsOpen(false)}>
-              Close Dialog Modal
-            </Button>
+            <div className={styles.footer}>
+              <Button variant="primary" onClick={() => setIsOpen(false)}>
+                Cancelar
+              </Button>
+              <Button variant="highlight" onClick={() => setIsOpen(false)}>
+                Marcar
+              </Button>
+            </div>
           </DialogFooter>
         </Dialog>
       )}

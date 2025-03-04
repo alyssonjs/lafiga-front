@@ -19,7 +19,7 @@ const Navbar = () => {
           />
         </div>
         <div className={styles.navbarMenu}>
-          <Link href="/session">
+          <Link href="/calendar">
             <Button variant="primary">Quadro de sessões</Button>
           </Link>
           <Link href="/login">

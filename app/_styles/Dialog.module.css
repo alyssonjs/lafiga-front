@@ -8,7 +8,7 @@
   box-shadow: 4px 4px 0px var(--border);
 
   width: 400px;
-  height: 400px;
+  max-height: 80vh;
 }
 
 .dialogOverlay {
