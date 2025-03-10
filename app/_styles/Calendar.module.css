@@ -29,9 +29,6 @@
   grid-template-columns: repeat(7, 1fr);
   grid-column-gap: 16px;
   grid-row-gap: 16px;
-}
-
-.daysGrid {
   height: 700px;
   position: relative;
   background-color: transparent;
@@ -49,19 +46,22 @@
 
 .dateDisplay {
   padding: 16px 0px;
-  color: var(--text-secondary)
+  color: var(--text-secondary);
 }
 
-.dayToday {
+.day {
   position: relative;
   display: flex;
   flex-direction: column;
   border: 4px solid var(--border);
   box-shadow: 4px 4px 0 0 var(--border);
+  transition: 100ms ease;
+  text-decoration: none;
+}
+
+.dayToday {
   background-color: var(--highlight);
   color: var(--text-primary);
-  transition: 100ms ease;
-  text-decoration: none; 
 }
 
 .dayToday:hover {
@@ -74,20 +74,13 @@
 
 .dayToday:active {
   transition: 50ms ease;
-  box-shadow:  0 0 0 0 var(--border);
+  box-shadow: 0 0 0 0 var(--border);
   transform: translate(4px, 4px);
 }
 
 .dayEnabled {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-
-  border: 4px solid var(--border);
   background-color: var(--medium);
   color: var(--text-secondary);
-  box-shadow: 4px 4px 0 0 var(--border);
-  text-decoration: none; 
 }
 
 .dayEnabled:hover {
@@ -100,27 +93,63 @@
 
 .dayEnabled:active {
   transition: 50ms ease;
-  box-shadow:  0 0 0 0 var(--border);
+  box-shadow: 0 0 0 0 var(--border);
   transform: translate(4px, 4px);
 }
 
 .dayDisabled {
-  position: relative;
-  display: flex;
-  flex-direction: column;
   background-color: grey;
-  border: 4px solid var(--border);
   box-shadow: none;
   transform: translate(4px, 4px);
-  text-decoration: none; 
 }
 
 .dayContentWrapper {
   padding: 8px;
-  text-decoration: none; 
+  text-decoration: none;
 }
 
 .monthArrowButtons {
   display: flex;
   gap: 16px;
+}
+
+@media screen and (max-width: 768px) {
+  .daysGrid {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: transparent;
+    height: 100%;
+  }
+
+  .day {
+    width: 100%;
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+    border: 4px solid var(--border);
+    box-shadow: 4px 4px 0 0 var(--border);
+    transition: 100ms ease;
+    text-decoration: none;
+  }
+
+  .daysOfWeek {
+    display: none;
+  }
+
+  .dayDisabled {
+    display: none;
+  }
+
+  .floatingButton {
+    position: fixed;
+    bottom: 76px;
+    right: 16px;
+    z-index: 1000;
+  }
+
+  .navigationHeader {
+    display: flex;
+    justify-content: flex-end;
+  }
 }

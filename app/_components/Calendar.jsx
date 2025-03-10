@@ -77,21 +77,32 @@ const Calendar = ({ yearAndMonth, onYearAndMonthChange, handleNewSession }) => {
   const renderCard = (day) => {
     if (day.isFutureDay)
       return (
-        <div key={day.dateString} onClick={() => handleNewSession(day.dateString)} className={styles.dayEnabled}>
+        <div
+          key={day.dateString}
+          onClick={() => handleNewSession(day.dateString)}
+          className={`${styles.day} ${styles.dayEnabled}`}
+        >
           {renderDay(day.dayOfMonth)}
         </div>
       );
 
     if (day.isToday) {
       return (
-        <div key={day.dateString} onClick={() => handleNewSession(day.dateString)} className={styles.dayToday}>
+        <div
+          key={day.dateString}
+          onClick={() => handleNewSession(day.dateString)}
+          className={`${styles.day} ${styles.dayToday}`}
+        >
           {renderDay(day.dayOfMonth)}
         </div>
       );
     }
 
     return (
-      <div key={day.dateString} className={styles.dayDisabled}>
+      <div
+        key={day.dateString}
+        className={`${styles.day} ${styles.dayDisabled}`}
+      >
         {renderDay(day.dayOfMonth)}
       </div>
     );
@@ -101,7 +112,13 @@ const Calendar = ({ yearAndMonth, onYearAndMonthChange, handleNewSession }) => {
     isClient && (
       <div className={styles.calendarRoot}>
         <div className={styles.navigationHeader}>
-          <Button variant="primary" onClick={() => handleNewSession()}>+ Marcar Sessão</Button>
+          <Button
+            variant="primary"
+            onClick={() => handleNewSession()}
+            className={styles.floatingButton}
+          >
+            + Marcar Sessão
+          </Button>
           <div className={styles.monthArrowButtons}>
             <div className={styles.dateDisplay}>{dateToday(year, month)}</div>
             <Button
