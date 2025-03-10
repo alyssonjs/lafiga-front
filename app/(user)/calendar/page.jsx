@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Calendar, { CalendarDayHeader } from "../_components/Calendar";
+import Calendar, { CalendarDayHeader } from "../../_components/Calendar";
 import {
   Dialog,
   DialogContent,
@@ -9,13 +9,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../_components/Dialog";
-import Input from "../_components/Input";
-import Button from "../_components/Button";
-import DatePicker from "../_components/DatePicker";
-import Select from "../_components/Select";
+} from "../../_components/Dialog";
+import Input from "../../_components/Input";
+import Button from "../../_components/Button";
+import DatePicker from "../../_components/DatePicker";
+import Select from "../../_components/Select";
 import dayjs from "dayjs";
-import styles from "../_styles/CalendarPage.module.css";
+import styles from "../../_styles/CalendarPage.module.css";
 
 require("dayjs/locale/pt-br");
 dayjs.locale("pt-br");

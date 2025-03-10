@@ -1,16 +1,16 @@
 "use client";
 
-import Button from "../_components/Button";
+import Button from "../../_components/Button";
 import Card, {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../_components/Card";
-import Input from "../_components/Input";
-import Badge from "../_components/Badge";
-import DatePicker from "../_components/DatePicker";
+} from "../../_components/Card";
+import Input from "../../_components/Input";
+import Badge from "../../_components/Badge";
+import DatePicker from "../../_components/DatePicker";
 import { useState } from "react";
 import {
   Dialog,
@@ -19,9 +19,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../_components/Dialog";
+} from "../../_components/Dialog";
 
-import Select, { SelectOption } from "../_components/Select";
+import Select, { SelectOption } from "../../_components/Select";
 
 const ComponentsPage = () => {
   const [isOpen, setIsOpen] = useState(false);

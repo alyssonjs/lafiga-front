@@ -1,13 +1,13 @@
 import Link from "next/link";
-import styles from "../_styles/Login.module.css";
+import styles from "../../_styles/Login.module.css";
 import Card, {
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../_components/Card";
-import Input from "../_components/Input";
-import Button from "../_components/Button";
+} from "../../_components/Card";
+import Input from "../../_components/Input";
+import Button from "../../_components/Button";
 
 const LoginPage = () => {
   return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import SessionPage from './session/page';
+import SessionPage from './(user)/session/page';
 
 const HomePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);

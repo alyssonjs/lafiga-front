@@ -31,6 +31,10 @@
     0 0 20px rgba(0, 230, 118, 0.3); /* Efeito de brilho */
 }
 
+html {
+  height: 100dvh;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -50,7 +54,8 @@ select {
 }
 
 main {
-  padding-top: 120px;
+  padding-top: 100px;
+  padding-bottom: 72px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

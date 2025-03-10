@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Card from "../_components/Card";
-import Modal from "../_components/Modal";
-import SessionForm from "../_components/SessionForm";
-import Button from "../_components/Button";
-import Dialog from "../_components/Button";
+import Card from "../../_components/Card";
+import Modal from "../../_components/Modal";
+import SessionForm from "../../_components/SessionForm";
+import Button from "../../_components/Button";
+import Dialog from "../../_components/Button";
 
-import styles from "../_styles/Session.module.css";
+import styles from "../../_styles/Session.module.css";
 
 const SessionPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
