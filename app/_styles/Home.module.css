@@ -1,0 +1,38 @@
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--dark);
+  color: var(--text-primary);
+  padding: 20px;
+}
+
+.cardsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 250px));
+  gap: 40px;
+  max-width: 1200px;
+  padding: 20px;
+  justify-content: center;
+  margin: auto;
+}
+
+.createButton {
+  background-color: var(--secondary);
+  border: 2px solid var(--highlight);
+  color: var(--text-primary);
+  padding: 12px 25px;
+  font-family: 'Press Start 2P', cursive;
+  /* font-size: 14px; */
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  box-shadow: var(--glow-effect);
+}
+
+.createButton:hover {
+  transform: translate(3px, 3px);
+  background-color: var(--accent);
+}

@@ -1,0 +1,41 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 85px;
+  z-index: 1000;
+  background-color: var(--background);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: inherit;  
+}
+
+.navbarBrand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbarLogo {
+  font-size: 20px;
+  text-transform: uppercase;
+  color: var(--highlight);
+  text-shadow: 2px 2px var(--primary), 4px 4px var(--dark);
+  transition: all 0.3s ease;
+}
+
+.navbarLogo:hover {
+  text-shadow: 2px 2px var(--primary), 4px 4px var(--dark),
+    0 0 10px rgba(247, 201, 11, 0.8);
+}
+
+.navbarMenu {
+  display: flex;
+  justify-content: flex-end;
+  align-content: flex-start;
+  gap: 10px;
+}

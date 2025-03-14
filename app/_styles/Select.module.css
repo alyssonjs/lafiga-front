@@ -1,0 +1,109 @@
+.title {
+  text-align: center;
+}
+
+.customSelectContainer {
+  display: inline-block;
+  width: -webkit-fill-available;
+  position: relative;
+}
+
+.selectedText {
+  /* background-color: #47eded; */
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+
+  width: -webkit-fill-available;
+  border: 4px solid var(--border);
+  color: var(--text-secondary);
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selectedText:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px var(--ring);
+  background-color: var(--foreground);
+  color: var(--text-primary);
+}
+
+.selectedText::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 16px;
+  border: 7px solid transparent;
+  border-color: #fff transparent transparent transparent;
+}
+
+.selectedText.active::after {
+  top: 8px;
+  border-color: transparent transparent #fff transparent;
+}
+
+/* .selectOptions {
+  position: absolute;
+  width: 100%;
+  padding: 4px;
+  margin-top: 4px;
+  border: 4px solid var(--border);
+  background: var(--secondary);
+} */
+
+.selectOptions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  border: 4px solid var(--border);
+  background: var(--secondary);
+  z-index: 1500;
+  list-style: none;
+  padding: 4px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.selectOptionsUp {
+  top: auto;
+  bottom: 100%;
+  margin-bottom: 4px;
+  border: 4px solid var(--border);
+  z-index: 1500;
+}
+
+.customSelectOption {
+  list-style-type: none;
+  padding: 6px;
+  background: var(--secondary);
+  border: 4px solid transparent;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.customSelectOption:hover {
+  border: 4px solid var(--border);
+  background-color: var(--medium);
+  color: var(--text-secondary);
+}
+
+.badgeClose {
+  margin-left: 5px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.badgeClose:hover {
+  color: #ff0000;
+}
+
+.selected {
+  background-color: #007bff;
+  color: white;
+}

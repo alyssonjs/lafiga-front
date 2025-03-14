@@ -1,0 +1,75 @@
+/* styles/globals.css */
+
+/* Estilo base do datepicker */
+.datePicker {
+  font-family: inherit;
+  background-color: transparent;
+  color: white;
+  border: 4px solid var(--border);
+  /* border-radius: 5px; */
+  padding: 10px;
+  cursor: pointer;
+  /* height: 2.5rem; */
+  width: -webkit-fill-available;
+  /* margin-bottom: 15px; */
+  font-size: inherit;
+}
+
+.datePicker:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px var(--ring);
+  background-color: var(--foreground);
+  color: var(--text-primary);
+}
+
+.datePicker::placeholder {
+  color: var(--text-secondary);
+}
+
+.datePicker:focus::placeholder {
+  color: var(--text-primary);
+}
+
+/* Override do Flatpickr */
+.flatpickr-calendar {
+  font-family: inherit !important;
+  background: #2c3e50 !important;
+  border: 4px solid #1a252f !important;
+  color: #fff !important;
+  box-shadow: 4px 4px 0 #000 !important;
+}
+
+.flatpickr-day {
+  color: #fff !important;
+  border: 1px solid #1a252f !important;
+}
+
+.flatpickr-day.selected {
+  background: #ff4081 !important;
+  border-color: #ff4081 !important;
+}
+
+.flatpickr-day:hover {
+  background: #6a1b9a !important;
+}
+
+.flatpickr-month {
+  background: #1a252f !important;
+  color: #fff !important;
+  padding: 10px 0 !important;
+}
+
+.flatpickr-prev-month,
+.flatpickr-next-month {
+  color: #fff !important;
+}
+
+.flatpickr-current-month {
+  /* font-size: 14px !important; */
+}
+
+.flatpickr-time input {
+  color: #fff !important;
+  background: #1a252f !important;
+}
