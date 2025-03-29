@@ -1,8 +1,4 @@
-import { z } from 'zod';
-
-const envSchema = z.object({
-  NEXT_PUBLIC_API_BASE_URL: z.string().url(),
-  API_SECRET_KEY: z.string().min(10),
-});
-
-export const env = envSchema.parse(process.env);
+export const env = {
+  NEXT_PUBLIC_API_BASE_URL: 'http://localhost:3001',
+  API_SECRET_KEY: process.env.API_SECRET_KEY || 'sua_chave_aqui'
+};

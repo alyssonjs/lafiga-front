@@ -6,18 +6,14 @@ import {
   createDaysForCurrentMonth,
   createDaysForNextMonth,
   createDaysForPreviousMonth,
-  isWeekendDay,
-  getMonthDropdownOptions,
-  getYearDropdownOptions,
   dateToday,
-  isDateInThePast,
   isCurrentMonth,
   isNextMonth,
 } from "../_helpers/calendarHelper";
 import styles from "../_styles/Calendar.module.css";
 import Button from "./Button";
 
-const Calendar = ({ yearAndMonth, onYearAndMonthChange, handleNewSession }) => {
+const Calendar = ({ schedules, yearAndMonth, onYearAndMonthChange, handleNewSession }) => {
   const [year, month] = yearAndMonth;
   const [isClient, setIsClient] = useState(false);
 
@@ -75,6 +71,23 @@ const Calendar = ({ yearAndMonth, onYearAndMonthChange, handleNewSession }) => {
   };
 
   const renderCard = (day) => {
+    const scheduleForDay = schedules.find(s => s.date_dimension.date === day.dateString);
+
+    if (scheduleForDay) {
+      return (
+        <div
+          key={day.dateString}
+          onClick={() => handleNewSession(day.dateString, scheduleForDay)}
+          className={`${styles.day} ${styles.dayReserved}`}
+        >
+          {renderDay(day.dayOfMonth)}
+          <div className={styles.scheduleInfo}>
+            <span>{scheduleForDay.title}</span>
+          </div>
+        </div>
+      );
+    }
+
     if (day.isFutureDay)
       return (
         <div
