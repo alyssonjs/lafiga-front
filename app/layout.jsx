@@ -2,6 +2,7 @@ import { Pixelify_Sans, Press_Start_2P, VT323 } from "next/font/google";
 import "./globals.css";
 import Navbar from "./_components/Navbar";
 import BottomNav from "./_components/BottomNav";
+import Dice from "./_components/Dice";
 
 const start = Press_Start_2P({ subsets: ["latin"], weight: "400" });
 const pixel = Pixelify_Sans({ subsets: ["latin"], weight: "400" });
@@ -12,11 +13,11 @@ export const metadata = {
 };
 
 export const viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-}
+};
 
 export default function RootLayout({ children }) {
   return (
@@ -26,6 +27,7 @@ export default function RootLayout({ children }) {
         <main>{children}</main>
         <div id="dialogRoot"></div>
         <BottomNav />
+        <Dice />
       </body>
     </html>
   );
