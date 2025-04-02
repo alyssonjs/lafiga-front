@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Calendar, { CalendarDayHeader } from "../../_components/Calendar";
+import { useState, useEffect } from "react";
+import Calendar from "../../_components/Calendar";
 import {
   Dialog,
   DialogContent,
@@ -16,17 +16,34 @@ import DatePicker from "../../_components/DatePicker";
 import Select from "../../_components/Select";
 import dayjs from "dayjs";
 import styles from "../../_styles/CalendarPage.module.css";
+import { fetchSchedules } from '../../_services/railsApi';
 
 require("dayjs/locale/pt-br");
 dayjs.locale("pt-br");
 
 const CalendarPage = () => {
+  const [schedules, setSchedules] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchSchedules()
+      .then((data) => {
+        console.log("Schedules recebidos:", data);
+        setSchedules(data);
+      })
+      .catch((err) => {
+        console.error("Erro ao buscar schedules:", err);
+        setError(err.message);
+      });
+  }, []);
+
   const [yearAndMonth, setYearAndMonth] = useState([
     dayjs().year(),
     dayjs().month() + 1,
   ]);
   const [isOpen, setIsOpen] = useState(false);
   const [date, setDate] = useState(null);
+  const [edit, setEdit] = useState(false);
 
   let options = [
     { id: 1, name: "Jorge o Rei da Floresta" },
@@ -41,9 +58,10 @@ const CalendarPage = () => {
     { id: 10, name: "Militão" },
   ];
 
-  const handleNewSession = (date) => {
+  const handleNewSession = (date, scheduleForDay) => {
     if (date) {
       setDate(dayjs(date).format("DD/MM/YYYY"));
+      setEdit(!scheduleForDay)
     } else {
       setDate(null);
     }
@@ -54,6 +72,7 @@ const CalendarPage = () => {
   return (
     <>
       <Calendar
+        schedules={schedules}
         yearAndMonth={yearAndMonth}
         onYearAndMonthChange={setYearAndMonth}
         handleNewSession={handleNewSession}
@@ -83,9 +102,12 @@ const CalendarPage = () => {
               <Button variant="primary" onClick={() => setIsOpen(false)}>
                 Cancelar
               </Button>
-              <Button variant="highlight" onClick={() => setIsOpen(false)}>
+              {
+                edit ??
+                <Button variant="highlight" onClick={() => setIsOpen(false)}>
                 Marcar
               </Button>
+              }
             </div>
           </DialogFooter>
         </Dialog>
