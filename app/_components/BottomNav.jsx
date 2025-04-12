@@ -5,12 +5,14 @@ import styles from "../_styles/BottomNav.module.css";
 import Button from "./Button";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { useAuth } from "../_context/AuthContext";
 
 const BottomNav = () => {
   const pathname = usePathname().split("/").filter(Boolean)[0];
   const [current, setCurrent] = useState(pathname);
+  const { user, role, permissions, logoutUser } = useAuth();
 
-  console.log(current);
+  console.log(user, role, permissions);
 
   const handleMenu = (value) => {
     setCurrent(value);
@@ -39,15 +41,18 @@ const BottomNav = () => {
           )}
         </Link>
 
-        <Link href="/login" onClick={() => handleMenu("login")}>
-          {current === "login" ? (
-            <Button variant="highlight" status="pressed">Login</Button>
-          ) : (
-            <Button size="icon" variant="primary">
-              L
-            </Button>
-          )}
-        </Link>
+          { !user ?
+              <Link href="/login" onClick={() => handleMenu("login")}>
+              {current === "login" ? (
+                <Button variant="highlight" status="pressed">Login</Button>
+              ) : (
+                <Button size="icon" variant="primary">
+                  L
+                </Button>
+              )}
+            </Link> : <Button variant="primary" onClick={() => logoutUser()}>Desconctar</Button>
+          }
+
       </div>
     </div>
   );
