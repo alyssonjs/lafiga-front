@@ -40,7 +40,7 @@ export const getNumberOfDaysInMonth = (year, month) => {
 export const createDaysForCurrentMonth = (year, month) => {
   return [...Array(getNumberOfDaysInMonth(year, month))].map((_, index) => {
     return {
-      dateString: dayjs(`${year}-${month}-${index + 1}`).format('YYYY-DD-MM'),
+      dateString: dayjs(`${year}-${month}-${index + 1}`).format('YYYY-MM-DD'),
       dayOfMonth: index + 1,
       isCurrentMonth: true,
       isFutureDay: isFutureDay(dayjs(`${year}-${month}-${index + 1}`)),
@@ -67,7 +67,7 @@ export const createDaysForPreviousMonth = (year, month, currentMonthDays) => {
         `${previousMonth.year()}-${previousMonth.month() + 1}-${
           previousMonthLastMondayDayOfMonth + index
         }`
-      ).format('YYYY-DD-MM'),
+      ).format('YYYY-MM-DD'),
       dayOfMonth: previousMonthLastMondayDayOfMonth + index,
       isCurrentMonth: false,
       isPreviousMonth: true,
@@ -86,7 +86,7 @@ export const createDaysForNextMonth = (year, month, currentMonthDays) => {
     return {
       dateString: dayjs(
         `${nextMonth.year()}-${nextMonth.month() + 1}-${index + 1}`
-      ).format('YYYY-DD-MM'),
+      ).format('YYYY-MM-DD'),
       dayOfMonth: index + 1,
       isCurrentMonth: false,
       isNextMonth: true,

@@ -10,9 +10,8 @@ import { useAuth } from "../_context/AuthContext";
 const BottomNav = () => {
   const pathname = usePathname().split("/").filter(Boolean)[0];
   const [current, setCurrent] = useState(pathname);
+  // Nao estamos usando as permissoes ainda.
   const { user, role, permissions, logoutUser } = useAuth();
-
-  console.log(user, role, permissions);
 
   const handleMenu = (value) => {
     setCurrent(value);
@@ -21,7 +20,8 @@ const BottomNav = () => {
   return (
     <div className={styles.bottomNav}>
       <div className={styles.bottomNavMenu}>
-      <Link href="/components" onClick={() => handleMenu("components")}>
+      { role === 'Admin' &&
+        <Link href="/components" onClick={() => handleMenu("components")}>
           {current === "components" ? (
             <Button variant="highlight" status="pressed">Home</Button>
           ) : (
@@ -30,6 +30,19 @@ const BottomNav = () => {
             </Button>
           )}
         </Link>
+        }
+
+        { role === 'Admin' &&
+        <Link href="/groups" onClick={() => handleMenu("groups")}>
+          {current === "groups" ? (
+            <Button variant="highlight" status="pressed">Grupos</Button>
+          ) : (
+            <Button size="icon" variant="primary">
+              G
+            </Button>
+          )}
+        </Link>
+        }
 
         <Link href="/calendar" onClick={() => handleMenu("calendar")}>
           {current === "calendar" ? (
@@ -37,6 +50,16 @@ const BottomNav = () => {
           ) : (
             <Button size="icon" variant="primary">
               QS
+            </Button>
+          )}
+        </Link>
+
+        <Link href="/characters" onClick={() => handleMenu("characters")}>
+          {current === "characters" ? (
+            <Button variant="highlight" status="pressed">Personagens</Button>
+          ) : (
+            <Button size="icon" variant="primary">
+              P
             </Button>
           )}
         </Link>

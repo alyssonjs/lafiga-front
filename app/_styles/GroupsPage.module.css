@@ -1,0 +1,52 @@
+.pageContainer {
+  padding: 24px;
+  font-family: 'Press Start 2P', cursive;
+  color: var(--text-primary);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.error {
+  color: red;
+  margin-bottom: 12px;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--light);
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: transform .2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.selectedCard {
+  border: 2px solid var(--highlight);
+}
+
+.detailPanel {
+  margin-top: 24px;
+  display: flex;
+  gap: 24px;
+}
+
+.detailActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
