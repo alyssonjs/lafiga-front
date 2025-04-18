@@ -7,11 +7,6 @@ const HomePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [cards, setCards] = useState([]);
 
-  // const handleAddCard = (newCard) => {
-  //   setCards([...cards, newCard]);
-  //   setIsModalOpen(false);
-  // };
-
   return (
     <SessionPage/>
   );

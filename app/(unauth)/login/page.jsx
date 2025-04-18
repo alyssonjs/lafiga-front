@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "../../_styles/Login.module.css";
 import Card, {
@@ -8,8 +12,51 @@ import Card, {
 } from "../../_components/Card";
 import Input from "../../_components/Input";
 import Button from "../../_components/Button";
+import { login } from "../../_services/railsApi";
+import { useAuth } from "../../_context/AuthContext";
 
 const LoginPage = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+  const router = useRouter(); // para redirecionamento
+  const { user, loginUser } = useAuth();
+
+  // redirects the user if user is logged in.
+
+  if (user) {
+    router.push("/calendar");
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await login({ email, password });
+      console.log("Login realizado com sucesso:", response);
+      
+      // Store the data in a context and keeps the login
+      loginUser({
+        token: response.token,
+        user_infos: response.user_infos,
+        role: response.role,
+        permissions: response.permissions,
+      });
+
+
+      // Not implemented yet, but should redirect to admin screen or
+      // player screen
+      if (response.role === "Admin") {
+        router.push("/calendar");
+      } else if (response.role === "Player") {
+        router.push("/calendar");
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    }
+  };
+
   return (
     <div className={styles.loginContainer}>
       <Card style={{ width: "300px" }}>
@@ -17,13 +64,18 @@ const LoginPage = () => {
           <CardTitle>Login</CardTitle>
         </CardHeader>
         <CardContent>
-          <div style={{ display: "flex", flexDirection: "column", gap: "1em" }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{ display: "flex", flexDirection: "column", gap: "1em" }}
+          >
             <Input
               type="text"
               id="username"
-              name="username"
+              name="email"
               required
-              placeholder="Username"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
             <Input
               type="password"
@@ -31,37 +83,27 @@ const LoginPage = () => {
               name="password"
               required
               placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
-          </div>
+            {error && <div className={styles.error}>Erro: {error}</div>}
+            <Button
+              variant="highlight"
+              type="submit"
+              className={styles.loginButton}
+            >
+              Entrar
+            </Button>
+          </form>
         </CardContent>
         <CardFooter>
-          <div className={styles.footer}>
-            <Button className={styles.loginButton} variant="highlight">Entrar</Button>
-            <p className={styles.signupText}>
-              Não tem uma conta? <Link href="/signup">Cadastre-se</Link>
-            </p>
-          </div>
+          <p className={styles.signupText}>
+            Não tem uma conta? <Link href="/signup">Cadastre-se</Link>
+          </p>
         </CardFooter>
       </Card>
     </div>
   );
-  // return (
-  //   <div className={styles.loginContainer}>
-  //     <h1 className={styles.loginTitle}>Login</h1>
-  //     <form className={styles.loginForm}>
-  //       <label htmlFor="username">Usuário:</label>
-  //       <input type="text" id="username" name="username" required />
-
-  //       <label htmlFor="password">Senha:</label>
-  //       <input type="password" id="password" name="password" required />
-
-  //       <button type="submit" className={styles.loginButton}>Entrar</button>
-  //     </form>
-  //     <p className={styles.signupText}>
-  //       Não tem uma conta? <Link href="/signup">Cadastre-se</Link>
-  //     </p>
-  //   </div>
-  // );
 };
 
 export default LoginPage;
