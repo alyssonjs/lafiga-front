@@ -12,10 +12,10 @@ import {
 import TextArea from "./TextArea";
 import Button from "./Button";
 import Input from "./Input";
-import { createAdminCharacter, editAdminCharacter, getPublicGroups, getAdminUsers } from "../_services/railsApi";
+import { createPlayerCharacter, editPlayerCharacter } from "../_services/railsApi";
 import styles from "../_styles/CharacterForm.module.css";
 
-const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
+const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
   const isEdit = Boolean(character);
 
   const [name, setName] = useState("");
@@ -42,21 +42,6 @@ const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
     setError(null);
   }, [isOpen, character]);
 
-  useEffect(() => {
-    async function fetchGroups() {
-      try {
-        const responseGroups = await getPublicGroups();
-        const responseUsers = await getAdminUsers();
-        setGroups(responseGroups.groups || responseGroups);
-        setUsers(responseUsers.users || responseUsers);
-
-      } catch (err) {
-        console.error("Erro ao buscar grupos:", err);
-        setError("Erro ao buscar grupos");
-      }
-    }
-    fetchGroups();
-  }, []);
 
   const resetForm = () => {
     setName("");
@@ -73,8 +58,8 @@ const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
       const payload = { name, background, group_id: groupId ? +groupId : null, user_id: userId };
       
       const response = isEdit 
-        ? await editAdminCharacter(character.id, payload) 
-        : await createAdminCharacter(payload);
+        ? await editPlayerCharacter(character.id, payload) 
+        : await createPlayerCharacter(payload);
 
       setSuccessMessage("Personagem criado com sucesso!");
       console.log(response)
@@ -112,33 +97,6 @@ const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
             className={styles.inputTextarea}
             required
           />
-
-          <label htmlFor="group" className={styles.label}>Grupo:</label>
-          <select
-            id="group"
-            value={groupId}
-            onChange={(e) => setGroupId(e.target.value)}
-            className={styles.selectDropdown}
-          >
-            <option value="">Selecione um grupo</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-
-          <label htmlFor="user" className={styles.label}>User:</label>
-          <select
-            id="user"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            className={styles.selectDropdown}
-          >
-            <option value="">Selecione o usuario</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
-
         </form>
       </DialogContent>
       <DialogFooter>
@@ -149,4 +107,4 @@ const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
   );
 };
 
-export default CharacterFormDialog;
+export default PlayerCharacterFormDialog;

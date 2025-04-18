@@ -12,11 +12,34 @@ export async function login(credentials) {
 
 export async function logout() {
   try {
-    const response = await apiClient.post('/api/auth/logout');
+    const response = await apiClient.post('/auth/logout');
     return response;
   } catch (error) {
     throw new Error('Erro ao efetuar logout: ' + error.message);
   }
+}
+
+export async function register(credentials) {
+  try {
+    const response = await apiClient.post('/auth/signup', credentials);
+    return response;
+  } catch (error) {
+    throw new Error('Erro ao efetuar cadastro: ' + error.message);
+  }
+}
+
+//Users Admin
+export async function getAdminUsers() {
+  return apiClient.get('/api/v1/admin/users');
+}
+
+export async function editAdminUser(userId, user) {
+  return apiClient.put(`/api/v1/admin/users/${userId}`, user);
+}
+
+//Users Roles
+export async function getAdminRoles() {
+  return apiClient.get('/api/v1/admin/roles');
 }
 
 //Schedules Public
@@ -38,7 +61,6 @@ export async function editPlayerSchedule(scheduleId, schedule) {
 
 }
 
-//Schedules Admin
 export async function createAdminSchedule(schedule) {
   return apiClient.post('/api/v1/admin/schedules', schedule);
 }
@@ -57,8 +79,8 @@ export async function getPlayerCharacters() {
   return apiClient.get('/api/v1/player/characters');
 }
 
-export async function editPlayerCharacter(character) {
-  return apiClient.put('/api/v1/player/characters', character);
+export async function editPlayerCharacter(characterId, character) {
+  return apiClient.put(`/api/v1/player/characters/${characterId}`, character);
 }
 
 export async function createPlayerCharacter(character) {

@@ -16,14 +16,12 @@
   margin-bottom: 10px;
 }
 
-/* Grid responsivo: minmax garante largura mínima e colunas fluem */
 .cardsContainer {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
 }
 
-/* Seção inline (formulário ou detalhes) */
 .inlineSection {
   margin-top: 30px;
   padding: 20px;
@@ -32,7 +30,6 @@
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* Opcional: título das seções inline */
 .inlineSection h2 {
   margin-top: 0;
   font-size: 20px;

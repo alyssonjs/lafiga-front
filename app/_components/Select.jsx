@@ -4,51 +4,75 @@ import Badge from "./Badge";
 
 const Select = ({
   placeholder = "Placeholder",
-  options,
+  options = [],
   multiselect = false,
-  value = multiselect ? [] : null,
+  // value: for multiselect it's an array of option objects; for single select it's the selected id
+  value, // no default to prevent identity changes
   onChange = () => {},
 }) => {
+  // Initialize state once using the initial value prop
   const [selectedOptions, setSelectedOptions] = useState(
-    multiselect ? value : []
+    () => (multiselect ? (Array.isArray(value) ? value : []) : [])
   );
-  const [defaultSelectText, setDefaultSelectText] = useState(
-    placeholder
+  const [selectedOption, setSelectedOption] = useState(
+    () => (!multiselect && value != null
+      ? options.find((o) => o.id === value) || null
+      : null)
   );
   const [showOptionList, setShowOptionList] = useState(false);
   const [listDirection, setListDirection] = useState("down");
   const selectContainerRef = useRef(null);
 
-  // sempre que value mudar, sincroniza
+  // Sync internal state when value prop changes (only if value !== undefined)
   useEffect(() => {
-    if (multiselect) {
-      setSelectedOptions(value);
-    } else if (value) {
-      setDefaultSelectText(
-        options.find((o) => o.id === value)?.name || placeholder
-      );
+    if (multiselect && value !== undefined) {
+      setSelectedOptions(Array.isArray(value) ? value : []);
     }
-  }, [value, options, placeholder, multiselect]);
+    if (!multiselect && value != null) {
+      const found = options.find((o) => o.id === value) || null;
+      setSelectedOption(found);
+    }
+  }, [value, multiselect]);
 
-  // resto dos hooks iguais...
-
-  const handleOptionClick = (e) => {
-    const id = e.target.getAttribute("data-id");
-    const name = e.target.getAttribute("data-name");
-    if (multiselect) {
-      let newSel;
-      const exists = selectedOptions.some((o) => o.id === id);
-      if (exists) {
-        newSel = selectedOptions.filter((o) => o.id !== id);
-      } else {
-        newSel = [...selectedOptions, { id, name }];
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        selectContainerRef.current &&
+        !selectContainerRef.current.contains(event.target)
+      ) {
+        setShowOptionList(false);
       }
-      setSelectedOptions(newSel);
-      onChange(newSel);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Determine dropdown direction (up/down) when opening
+  useEffect(() => {
+    if (showOptionList && selectContainerRef.current) {
+      const rect = selectContainerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      // approximate dropdown height
+      const dropdownHeight = Math.min(options.length * 40, 200);
+      setListDirection(spaceBelow < dropdownHeight ? "up" : "down");
+    }
+  }, [showOptionList, options.length]);
+
+  const handleOptionClick = (opt) => {
+    if (multiselect) {
+      const exists = selectedOptions.some((o) => o.id === opt.id);
+      const newSelection = exists
+        ? selectedOptions.filter((o) => o.id !== opt.id)
+        : [...selectedOptions, opt];
+      setSelectedOptions(newSelection);
+      onChange(newSelection);
     } else {
-      setDefaultSelectText(name);
+      setSelectedOption(opt);
       setShowOptionList(false);
-      onChange(id);
+      onChange(opt.id);
     }
   };
 
@@ -58,40 +82,46 @@ const Select = ({
     onChange(newSel);
   };
 
-  const availableOptions = options.filter(
-    (o) => !selectedOptions.some((s) => s.id === o.id)
-  );
+  const availableOptions = multiselect
+    ? options.filter((o) => !selectedOptions.some((s) => s.id === o.id))
+    : options;
 
   return (
-    <div className={styles.customSelectContainer} ref={selectContainerRef}>
+    <div
+      className={styles.customSelectContainer}
+      ref={selectContainerRef}
+    >
       <div
         className={`${styles.selectedText} ${
           showOptionList ? styles.active : ""
         }`}
         tabIndex={0}
-        onClick={() => {
-          // calcula direção...
-          setShowOptionList((v) => !v);
-        }}
+        onClick={() => setShowOptionList((v) => !v)}
       >
-        {multiselect
-          ? selectedOptions.length === 0
-            ? placeholder
-            : selectedOptions.map((o) => (
-                <Badge key={o.id}>
-                  {o.name}
-                  <span
-                    className={styles.badgeClose}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeSelectedOption(o.id);
-                    }}
-                  >
-                    &times;
-                  </span>
-                </Badge>
-              ))
-          : defaultSelectText}
+        {multiselect ? (
+          selectedOptions.length === 0 ? (
+            placeholder
+          ) : (
+            selectedOptions.map((o) => (
+              <Badge key={o.id}>
+                {o.name}
+                <span
+                  className={styles.badgeClose}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeSelectedOption(o.id);
+                  }}
+                >
+                  &times;
+                </span>
+              </Badge>
+            ))
+          )
+        ) : selectedOption ? (
+          selectedOption.name
+        ) : (
+          placeholder
+        )}
       </div>
       {showOptionList && (
         <ul
@@ -102,10 +132,8 @@ const Select = ({
           {availableOptions.map((opt) => (
             <li
               key={opt.id}
-              data-id={opt.id}
-              data-name={opt.name}
               className={styles.customSelectOption}
-              onClick={handleOptionClick}
+              onClick={() => handleOptionClick(opt)}
             >
               {opt.name}
             </li>

@@ -1,23 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import CharacterFormDialog from "../../_components/CharacterFormDialog";
+import PlayerCharacterFormDialog from "../../_components/PlayerCharacterFormDialog";
 import CharacterInfo from "../../_components/CharacterInfo";
 import CharacterCard from "../../_components/CharacterCard";
 import Button from "../../_components/Button";
-import { getAdminCharacters } from "../../_services/railsApi";
+import { getPlayerCharacters } from "../../_services/railsApi";
 import styles from "../../_styles/Characters.module.css";
 
 const CharactersPage = () => {
   const [characters, setCharacters] = useState([]);
   const [error, setError] = useState(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreationOpen, setIsCreationOpen] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
 
   useEffect(() => {
     async function fetchCharacters() {
       try {
-        const data = await getAdminCharacters();
+        const data = await getPlayerCharacters();
         setCharacters(data.characters);
       } catch (err) {
         console.error("Erro ao buscar personagens:", err);
@@ -30,6 +31,18 @@ const CharactersPage = () => {
   const handleAddCharacter = (newChar) => {
     setCharacters((prev) => [...prev, newChar]);
     setIsCreationOpen(false);
+  };
+
+  const closeEditCharacter = () => {
+    setIsEditOpen(false);
+    setSelectedCharacter(null);
+  }
+
+  const editCharacter = (chrac) => {
+    setCharacters((prev) =>
+      prev.map((c) => (c.id === chrac.id ? chrac : c))
+    );
+    closeEditCharacter()
   };
 
   const handleCardClick = (char) => {
@@ -59,18 +72,28 @@ const CharactersPage = () => {
       </div>
 
       {isCreationOpen && (
-        <CharacterFormDialog
+        <PlayerCharacterFormDialog
           isOpen={open}
           onClose={() => setIsCreationOpen(false)}
-          onCreated={handleAddCharacter}
+          onSave={handleAddCharacter}
         />
       )}
 
-      {selectedCharacter && (
+      {selectedCharacter && isEditOpen && (
+        <PlayerCharacterFormDialog
+          isOpen={isEditOpen}
+          onClose={() => closeEditCharacter()}
+          onSave={editCharacter}
+          character={selectedCharacter}
+        />
+      )}
+
+      {selectedCharacter && !isEditOpen && (
         <CharacterInfo
           character={selectedCharacter}
           onClose={() => setSelectedCharacter(null)}
-        />
+          setIsEditOpen={() => setIsEditOpen(true)}
+          />
       )}
     </div>
   );

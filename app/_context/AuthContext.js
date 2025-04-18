@@ -39,7 +39,6 @@ export const AuthProvider = ({ children }) => {
 
   // Função para efetuar login e armazenar os dados
   const loginUser = async (loginData) => {
-    console.log(loginData)
     localStorage.setItem('token', loginData.token);
     localStorage.setItem('user_infos', JSON.stringify(loginData.user_infos));
     localStorage.setItem('role', loginData.role);

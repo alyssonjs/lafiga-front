@@ -12,7 +12,7 @@ import {
 import Button from "./Button";
 import styles from "../_styles/CharacterInfo.module.css";
 
-const CharacterInfo = ({ character, onClose }) => {
+const CharacterInfo = ({ character, onClose, setIsEditOpen }) => {
   return (
     <Dialog onClose={onClose}>
       <DialogHeader>
@@ -40,6 +40,9 @@ const CharacterInfo = ({ character, onClose }) => {
           </div>
         </div>
       </DialogContent>
+      <DialogFooter>
+        <Button variant="highlight" onClick={() => setIsEditOpen(true)}>Editar</Button>
+      </DialogFooter>     
     </Dialog>
   );
 };
