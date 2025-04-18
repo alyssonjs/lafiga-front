@@ -16,24 +16,6 @@ const Navbar = () => {
           priority
         />
       </div>
-      {/* <div className={styles.navbarMenu}>
-        <nav class="nav">
-          <ul class="menu">
-            <Link href="/calendar">
-              <Button variant="primary">Quadro de sessões</Button>
-            </Link>
-            <Link href="/login">
-              <Button variant="primary">Login</Button>
-            </Link>
-          </ul>
-        </nav>
-        <Link href="/calendar">
-            <Button variant="primary">Quadro de sessões</Button>
-          </Link>
-          <Link href="/login">
-            <Button variant="primary">Login</Button>
-          </Link>
-      </div> */}
     </div>
   );
 };

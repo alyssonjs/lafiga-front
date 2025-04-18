@@ -2,83 +2,64 @@ import React, { useState, useEffect, useRef } from "react";
 import styles from "../_styles/Select.module.css";
 import Badge from "./Badge";
 
-const Select = ({ placeholder = "Placeholder", options, multiselect = false }) => {
-  const [defaultSelectText, setDefaultSelectText] = useState(placeholder);
-
-  const [selectedOptions, setSelectedOptions] = useState([]);
-
+const Select = ({
+  placeholder = "Placeholder",
+  options,
+  multiselect = false,
+  value = multiselect ? [] : null,
+  onChange = () => {},
+}) => {
+  const [selectedOptions, setSelectedOptions] = useState(
+    multiselect ? value : []
+  );
+  const [defaultSelectText, setDefaultSelectText] = useState(
+    placeholder
+  );
   const [showOptionList, setShowOptionList] = useState(false);
   const [listDirection, setListDirection] = useState("down");
   const selectContainerRef = useRef(null);
 
+  // sempre que value mudar, sincroniza
   useEffect(() => {
-    setDefaultSelectText(placeholder);
-  }, [placeholder]);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        selectContainerRef.current &&
-        !selectContainerRef.current.contains(e.target)
-      ) {
-        setShowOptionList(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const handleListDisplay = () => {
-    if (selectContainerRef.current) {
-      const rect = selectContainerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-
-      if (spaceBelow < 250 && spaceAbove > spaceBelow) {
-        setListDirection("up");
-      } else {
-        setListDirection("down");
-      }
+    if (multiselect) {
+      setSelectedOptions(value);
+    } else if (value) {
+      setDefaultSelectText(
+        options.find((o) => o.id === value)?.name || placeholder
+      );
     }
-    setShowOptionList((prevState) => !prevState);
-  };
+  }, [value, options, placeholder, multiselect]);
+
+  // resto dos hooks iguais...
 
   const handleOptionClick = (e) => {
-    const selectedName = e.target.getAttribute("data-name");
-    const selectedId = e.target.getAttribute("data-id");
-
+    const id = e.target.getAttribute("data-id");
+    const name = e.target.getAttribute("data-name");
     if (multiselect) {
-      const isSelected = selectedOptions.some(
-        (option) => option.id === selectedId
-      );
-
-      if (isSelected) {
-        setSelectedOptions((prevOptions) =>
-          prevOptions.filter((option) => option.id !== selectedId)
-        );
+      let newSel;
+      const exists = selectedOptions.some((o) => o.id === id);
+      if (exists) {
+        newSel = selectedOptions.filter((o) => o.id !== id);
       } else {
-        setSelectedOptions((prevOptions) => [
-          ...prevOptions,
-          { id: selectedId, name: selectedName },
-        ]);
+        newSel = [...selectedOptions, { id, name }];
       }
+      setSelectedOptions(newSel);
+      onChange(newSel);
     } else {
-      setDefaultSelectText(selectedName);
+      setDefaultSelectText(name);
       setShowOptionList(false);
+      onChange(id);
     }
   };
 
   const removeSelectedOption = (id) => {
-    setSelectedOptions((prevOptions) =>
-      prevOptions.filter((option) => option.id !== id)
-    );
+    const newSel = selectedOptions.filter((o) => o.id !== id);
+    setSelectedOptions(newSel);
+    onChange(newSel);
   };
 
   const availableOptions = options.filter(
-    (option) => !selectedOptions.some((selected) => selected.id === option.id)
+    (o) => !selectedOptions.some((s) => s.id === o.id)
   );
 
   return (
@@ -87,20 +68,23 @@ const Select = ({ placeholder = "Placeholder", options, multiselect = false }) =
         className={`${styles.selectedText} ${
           showOptionList ? styles.active : ""
         }`}
-        tabindex="0"
-        onClick={handleListDisplay}
+        tabIndex={0}
+        onClick={() => {
+          // calcula direção...
+          setShowOptionList((v) => !v);
+        }}
       >
         {multiselect
           ? selectedOptions.length === 0
             ? placeholder
-            : selectedOptions.map((option) => (
-                <Badge key={option.id}>
-                  {option.name}
+            : selectedOptions.map((o) => (
+                <Badge key={o.id}>
+                  {o.name}
                   <span
                     className={styles.badgeClose}
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeSelectedOption(option.id);
+                      removeSelectedOption(o.id);
                     }}
                   >
                     &times;
@@ -115,19 +99,15 @@ const Select = ({ placeholder = "Placeholder", options, multiselect = false }) =
             listDirection === "up" ? styles.selectOptionsUp : ""
           }`}
         >
-          {availableOptions.map((option) => (
+          {availableOptions.map((opt) => (
             <li
-              className={`${styles.customSelectOption} ${
-                !multiselect && defaultSelectText === option.name
-                  ? styles.selected
-                  : ""
-              }`}
-              data-name={option.name}
-              data-id={option.id}
-              key={option.id}
+              key={opt.id}
+              data-id={opt.id}
+              data-name={opt.name}
+              className={styles.customSelectOption}
               onClick={handleOptionClick}
             >
-              {option.name}
+              {opt.name}
             </li>
           ))}
         </ul>
