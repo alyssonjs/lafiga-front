@@ -2,112 +2,126 @@ import React, { useState, useEffect, useRef } from "react";
 import styles from "../_styles/Select.module.css";
 import Badge from "./Badge";
 
-const Select = ({ placeholder = "Placeholder", options, multiselect = false }) => {
-  const [defaultSelectText, setDefaultSelectText] = useState(placeholder);
-
-  const [selectedOptions, setSelectedOptions] = useState([]);
-
+const Select = ({
+  placeholder = "Placeholder",
+  options = [],
+  multiselect = false,
+  // value: for multiselect it's an array of option objects; for single select it's the selected id
+  value, // no default to prevent identity changes
+  onChange = () => {},
+}) => {
+  // Initialize state once using the initial value prop
+  const [selectedOptions, setSelectedOptions] = useState(
+    () => (multiselect ? (Array.isArray(value) ? value : []) : [])
+  );
+  const [selectedOption, setSelectedOption] = useState(
+    () => (!multiselect && value != null
+      ? options.find((o) => o.id === value) || null
+      : null)
+  );
   const [showOptionList, setShowOptionList] = useState(false);
   const [listDirection, setListDirection] = useState("down");
   const selectContainerRef = useRef(null);
 
+  // Sync internal state when value prop changes (only if value !== undefined)
   useEffect(() => {
-    setDefaultSelectText(placeholder);
-  }, [placeholder]);
+    if (multiselect && value !== undefined) {
+      setSelectedOptions(Array.isArray(value) ? value : []);
+    }
+    if (!multiselect && value != null) {
+      const found = options.find((o) => o.id === value) || null;
+      setSelectedOption(found);
+    }
+  }, [value, multiselect]);
 
+  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    function handleClickOutside(event) {
       if (
         selectContainerRef.current &&
-        !selectContainerRef.current.contains(e.target)
+        !selectContainerRef.current.contains(event.target)
       ) {
         setShowOptionList(false);
       }
-    };
-
+    }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
-  const handleListDisplay = () => {
-    if (selectContainerRef.current) {
+  // Determine dropdown direction (up/down) when opening
+  useEffect(() => {
+    if (showOptionList && selectContainerRef.current) {
       const rect = selectContainerRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-
-      if (spaceBelow < 250 && spaceAbove > spaceBelow) {
-        setListDirection("up");
-      } else {
-        setListDirection("down");
-      }
+      // approximate dropdown height
+      const dropdownHeight = Math.min(options.length * 40, 200);
+      setListDirection(spaceBelow < dropdownHeight ? "up" : "down");
     }
-    setShowOptionList((prevState) => !prevState);
-  };
+  }, [showOptionList, options.length]);
 
-  const handleOptionClick = (e) => {
-    const selectedName = e.target.getAttribute("data-name");
-    const selectedId = e.target.getAttribute("data-id");
-
+  const handleOptionClick = (opt) => {
     if (multiselect) {
-      const isSelected = selectedOptions.some(
-        (option) => option.id === selectedId
-      );
-
-      if (isSelected) {
-        setSelectedOptions((prevOptions) =>
-          prevOptions.filter((option) => option.id !== selectedId)
-        );
-      } else {
-        setSelectedOptions((prevOptions) => [
-          ...prevOptions,
-          { id: selectedId, name: selectedName },
-        ]);
-      }
+      const exists = selectedOptions.some((o) => o.id === opt.id);
+      const newSelection = exists
+        ? selectedOptions.filter((o) => o.id !== opt.id)
+        : [...selectedOptions, opt];
+      setSelectedOptions(newSelection);
+      onChange(newSelection);
     } else {
-      setDefaultSelectText(selectedName);
+      setSelectedOption(opt);
       setShowOptionList(false);
+      onChange(opt.id);
     }
   };
 
   const removeSelectedOption = (id) => {
-    setSelectedOptions((prevOptions) =>
-      prevOptions.filter((option) => option.id !== id)
-    );
+    const newSel = selectedOptions.filter((o) => o.id !== id);
+    setSelectedOptions(newSel);
+    onChange(newSel);
   };
 
-  const availableOptions = options.filter(
-    (option) => !selectedOptions.some((selected) => selected.id === option.id)
-  );
+  const availableOptions = multiselect
+    ? options.filter((o) => !selectedOptions.some((s) => s.id === o.id))
+    : options;
 
   return (
-    <div className={styles.customSelectContainer} ref={selectContainerRef}>
+    <div
+      className={styles.customSelectContainer}
+      ref={selectContainerRef}
+    >
       <div
         className={`${styles.selectedText} ${
           showOptionList ? styles.active : ""
         }`}
-        tabindex="0"
-        onClick={handleListDisplay}
+        tabIndex={0}
+        onClick={() => setShowOptionList((v) => !v)}
       >
-        {multiselect
-          ? selectedOptions.length === 0
-            ? placeholder
-            : selectedOptions.map((option) => (
-                <Badge key={option.id}>
-                  {option.name}
-                  <span
-                    className={styles.badgeClose}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeSelectedOption(option.id);
-                    }}
-                  >
-                    &times;
-                  </span>
-                </Badge>
-              ))
-          : defaultSelectText}
+        {multiselect ? (
+          selectedOptions.length === 0 ? (
+            placeholder
+          ) : (
+            selectedOptions.map((o) => (
+              <Badge key={o.id}>
+                {o.name}
+                <span
+                  className={styles.badgeClose}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeSelectedOption(o.id);
+                  }}
+                >
+                  &times;
+                </span>
+              </Badge>
+            ))
+          )
+        ) : selectedOption ? (
+          selectedOption.name
+        ) : (
+          placeholder
+        )}
       </div>
       {showOptionList && (
         <ul
@@ -115,19 +129,13 @@ const Select = ({ placeholder = "Placeholder", options, multiselect = false }) =
             listDirection === "up" ? styles.selectOptionsUp : ""
           }`}
         >
-          {availableOptions.map((option) => (
+          {availableOptions.map((opt) => (
             <li
-              className={`${styles.customSelectOption} ${
-                !multiselect && defaultSelectText === option.name
-                  ? styles.selected
-                  : ""
-              }`}
-              data-name={option.name}
-              data-id={option.id}
-              key={option.id}
-              onClick={handleOptionClick}
+              key={opt.id}
+              className={styles.customSelectOption}
+              onClick={() => handleOptionClick(opt)}
             >
-              {option.name}
+              {opt.name}
             </li>
           ))}
         </ul>

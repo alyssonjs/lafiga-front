@@ -50,6 +50,7 @@
 }
 
 .day {
+  padding: 5px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -57,6 +58,7 @@
   box-shadow: 4px 4px 0 0 var(--border);
   transition: 100ms ease;
   text-decoration: none;
+  height: 110px;
 }
 
 .dayToday {
@@ -97,6 +99,25 @@
   transform: translate(4px, 4px);
 }
 
+.dayReserved {
+  background-color: var(--primary);
+  color: var(--text-secondary);
+}
+
+.dayReserved:hover {
+  cursor: pointer;
+  background-color: var(--primary-hover);
+  transition: background-color 0.2s ease;
+  box-shadow: 2px 2px 0 0 var(--border);
+  transform: translate(2px, 2px);
+}
+
+.dayReserved:active {
+  transition: 50ms ease;
+  box-shadow: 0 0 0 0 var(--border);
+  transform: translate(4px, 4px);
+}
+
 .dayDisabled {
   background-color: grey;
   box-shadow: none;
@@ -104,7 +125,6 @@
 }
 
 .dayContentWrapper {
-  padding: 8px;
   text-decoration: none;
 }
 

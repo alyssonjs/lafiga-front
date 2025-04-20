@@ -1,0 +1,21 @@
+/* app/_styles/ScheduleInfoDialog.module.css */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.content p {
+  margin: 0;
+}
+
+.content strong {
+  display: inline-block;
+  width: 100px;
+}
+
+.description {
+  white-space: pre-wrap; /* preserva quebras de linha no texto */
+}

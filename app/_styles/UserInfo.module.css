@@ -1,0 +1,45 @@
+.userInfo {
+  position: relative;
+  padding: 20px;
+  font-family: 'Press Start 2P', cursive;
+  color: var(--text-primary);
+  background-color: var(--light);
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.closeButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.infoPhoto {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.infoPhoto img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.infoDetails {
+  line-height: 1.5;
+}
+
+.infoDetails h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.infoDetails p {
+  margin: 0 0 10px;
+  font-size: 16px;
+}

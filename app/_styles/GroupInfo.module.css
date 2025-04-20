@@ -1,0 +1,13 @@
+.info {
+  background: var(--light);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  flex: 1;
+}
+
+.description {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}

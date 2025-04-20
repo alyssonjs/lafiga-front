@@ -1,119 +1,145 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Calendar from "../../_components/Calendar";
+import ScheduleFormDialog from "../../_components/ScheduleFormDialog";
+import ScheduleInfoDialog from "../../_components/ScheduleInfoDialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../_components/Dialog";
-import Input from "../../_components/Input";
-import Button from "../../_components/Button";
-import DatePicker from "../../_components/DatePicker";
-import Select from "../../_components/Select";
+  fetchDateDimensions,
+  fetchPublicSchedules,
+  getPublicGroups,
+  createAdminSchedule,
+  editAdminSchedule,
+} from "../../_services/railsApi";
 import dayjs from "dayjs";
-import styles from "../../_styles/CalendarPage.module.css";
-import { fetchSchedules } from '../../_services/railsApi';
 
-require("dayjs/locale/pt-br");
-dayjs.locale("pt-br");
-
-const CalendarPage = () => {
+export default function CalendarPage() {
+  const [groups, setGroups] = useState([]);
+  const [dateDims, setDateDims] = useState([]);
   const [schedules, setSchedules] = useState([]);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetchSchedules()
-      .then((data) => {
-        console.log("Schedules recebidos:", data);
-        setSchedules(data);
-      })
-      .catch((err) => {
-        console.error("Erro ao buscar schedules:", err);
-        setError(err.message);
-      });
-  }, []);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoSchedule, setInfoSchedule] = useState(null);
+  const [infoDateDim, setInfoDateDim] = useState(null);
 
   const [yearAndMonth, setYearAndMonth] = useState([
     dayjs().year(),
     dayjs().month() + 1,
   ]);
+
   const [isOpen, setIsOpen] = useState(false);
-  const [date, setDate] = useState(null);
-  const [edit, setEdit] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [currentSchedule, setCurrentSchedule] = useState(null);
 
-  let options = [
-    { id: 1, name: "Jorge o Rei da Floresta" },
-    { id: 2, name: "Nelson da Capitinga" },
-    { id: 3, name: "Almir Rouche" },
-    { id: 4, name: "Mano Brown" },
-    { id: 5, name: "Arnold Schwarzenegger" },
-    { id: 6, name: "Bob Dylan" },
-    { id: 7, name: "Jão" },
-    { id: 8, name: "Padre Cícero" },
-    { id: 9, name: "Janja" },
-    { id: 10, name: "Militão" },
-  ];
+  const [error, setError] = useState(null);
 
-  const handleNewSession = (date, scheduleForDay) => {
-    if (date) {
-      setDate(dayjs(date).format("DD/MM/YYYY"));
-      setEdit(!scheduleForDay)
-    } else {
-      setDate(null);
-    }
+  const [year, month] = yearAndMonth;
 
+  useEffect(() => {
+    getPublicGroups()
+      .then((data) => setGroups(data))
+      .catch((e) => setError(e.message));
+  }, []);
+
+  useEffect(() => {
+    fetchDateDimensions(year, month)
+      .then((data) => setDateDims(data))
+      .catch((e) => setError(e.message));
+
+    fetchPublicSchedules()
+      .then((data) => setSchedules(data))
+      .catch((e) => setError(e.message));
+  }, [year, month]);
+
+  const openEditModal = (sched, dateDim) => {
+    setCurrentSchedule({
+      id: sched.id,
+      date_dimension_id: dateDim.id,
+      date: dateDim.date,
+      title: sched.title,
+      group_id: sched.group_id,
+      status: sched.status,
+    });
+    setEditing(true);
+    setInfoOpen(false);
     setIsOpen(true);
+  }
+
+  const handleNewSession = (dateDim, sched) => {
+    if (sched) {
+      setInfoSchedule(sched);
+      setInfoDateDim(dateDim);
+
+      setInfoOpen(true);
+
+    } else {
+      setCurrentSchedule({
+        date_dimension_id: dateDim.id,
+        date: dateDim.date,
+      });
+      setEditing(false);
+      setIsOpen(true);
+    }
+    setError(null);
+  };
+
+  const handleSave = async (data) => {
+    try {
+      let result;
+
+      if (editing) {
+        result = await editAdminSchedule(data.id, data);
+
+        setSchedules((prev) =>
+          prev.map((s) => (s.id === result.id ? result : s))
+        );
+      } else {
+        result = await createAdminSchedule(data);
+        setSchedules((prev) => [...prev, result]);
+      }
+  
+      const updatedDateDimId = result.date_dimension_id;
+
+      setDateDims((prev) =>
+        prev.map((dd) =>
+          dd.id === updatedDateDimId
+            ? { ...dd, schedule: result }   // injeta a schedule no dateDim
+            : dd
+        )
+      );
+      setEditing(false);
+      setIsOpen(false);
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
   return (
     <>
       <Calendar
+        dateDimensions={dateDims}
         schedules={schedules}
         yearAndMonth={yearAndMonth}
         onYearAndMonthChange={setYearAndMonth}
         handleNewSession={handleNewSession}
       />
-      {isOpen && (
-        <Dialog onClose={() => setIsOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>A Marcagem de Sessão</DialogTitle>
-            <DialogDescription>Marcando Sessão</DialogDescription>
-          </DialogHeader>
-          <DialogContent>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "1em" }}
-            >
-              <DatePicker date={date} />
-              <Input type="title" placeholder="Título" />
-              <Select
-                type="chars"
-                options={options}
-                placeholder="Personagens"
-                multiselect
-              />
-            </div>
-          </DialogContent>
-          <DialogFooter>
-            <div className={styles.footer}>
-              <Button variant="primary" onClick={() => setIsOpen(false)}>
-                Cancelar
-              </Button>
-              {
-                edit ??
-                <Button variant="highlight" onClick={() => setIsOpen(false)}>
-                Marcar
-              </Button>
-              }
-            </div>
-          </DialogFooter>
-        </Dialog>
-      )}
+
+      <ScheduleFormDialog
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSave={handleSave}
+        initialData={currentSchedule || {}}
+        groups={groups}
+      />
+
+      <ScheduleInfoDialog
+        isOpen={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        schedule={infoSchedule}
+        dateDimension={infoDateDim}
+        openEditModal={openEditModal}
+      />
+
+      {error && <div style={{ color: "red" }}>{error}</div>}
     </>
   );
-};
-
-export default CalendarPage;
+}

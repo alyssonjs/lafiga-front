@@ -1,3 +1,4 @@
+// pages/signup.js
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,32 +13,39 @@ import Card, {
 } from "../../_components/Card";
 import Input from "../../_components/Input";
 import Button from "../../_components/Button";
-import { login } from "../../_services/railsApi";
+import { register } from "../../_services/railsApi";
 import { useAuth } from "../../_context/AuthContext";
 
-const LoginPage = () => {
+const SignupPage = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState(null);
-  const router = useRouter(); // para redirecionamento
+
+  const router = useRouter();
   const { user, loginUser } = useAuth();
 
-  // redirects the user if user is logged in.
-
+  // Se já estiver logado, redireciona à dashboard
   useEffect(() => {
     if (user) {
       router.push("/calendar");
     }
-  }, [user, router]);
+  }, [user, router]);  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+
+    if (password !== passwordConfirmation) {
+      setError("As senhas não coincidem.");
+      return;
+    }
 
     try {
-      const response = await login({ email, password });
-      console.log("Login realizado com sucesso:", response);
-      
-      // Store the data in a context and keeps the login
+      const response = await register({ name, username, phone, email, password, password_confirmation: passwordConfirmation, role_id: 12 });
       loginUser({
         token: response.token,
         user_infos: response.user_infos,
@@ -45,24 +53,24 @@ const LoginPage = () => {
         permissions: response.permissions,
       });
 
-      // Not implemented yet, but should redirect to admin screen or
-      // player screen
       if (response.role === "Admin") {
-        router.push("/calendar");
-      } else if (response.role === "Player") {
+        router.push("/admin"); 
+      } else {
         router.push("/calendar");
       }
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError(err.message || "Erro ao registrar. Tente novamente.");
     }
   };
 
   return (
     <div className={styles.loginContainer}>
+      Voce sera registrado como visitando e o mestre ira lhe dar a permissao de jogar
+
       <Card style={{ width: "300px" }}>
         <CardHeader>
-          <CardTitle>Login</CardTitle>
+          <CardTitle>Cadastro</CardTitle>
         </CardHeader>
         <CardContent>
           <form
@@ -71,7 +79,25 @@ const LoginPage = () => {
           >
             <Input
               type="text"
+              id="name"
+              name="name"
+              required
+              placeholder="Nome completo"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <Input
+              type="username"
               id="username"
+              name="username"
+              required
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <Input
+              type="email"
+              id="email"
               name="email"
               required
               placeholder="Email"
@@ -79,13 +105,31 @@ const LoginPage = () => {
               onChange={(e) => setEmail(e.target.value)}
             />
             <Input
+              type="phone"
+              id="phone"
+              name="phone"
+              required
+              placeholder="Phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+            <Input
               type="password"
               id="password"
               name="password"
               required
-              placeholder="Password"
+              placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+            />
+            <Input
+              type="password"
+              id="passwordConfirmation"
+              name="passwordConfirmation"
+              required
+              placeholder="Confirme a senha"
+              value={passwordConfirmation}
+              onChange={(e) => setPasswordConfirmation(e.target.value)}
             />
             {error && <div className={styles.error}>Erro: {error}</div>}
             <Button
@@ -93,13 +137,13 @@ const LoginPage = () => {
               type="submit"
               className={styles.loginButton}
             >
-              Entrar
+              Registrar
             </Button>
           </form>
         </CardContent>
         <CardFooter>
           <p className={styles.signupText}>
-            Não tem uma conta? <Link href="/signup">Cadastre-se</Link>
+            Já tem uma conta? <Link href="/login">Faça login</Link>
           </p>
         </CardFooter>
       </Card>
@@ -107,4 +151,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default SignupPage;

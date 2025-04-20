@@ -1,0 +1,135 @@
+/* components/Carousel.module.css */
+.carouselContainer {
+  width: 100%;
+  height: 80vh;
+  position: relative;
+}
+
+.carousel {
+  height: 100%;
+  overflow: hidden;
+}
+
+.carouselTrack {
+  height: 100%;
+  position: relative;
+}
+
+.carouselSlide {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+}
+
+.carouselSlide.active {
+  opacity: 1;
+  transform: translateX(0);
+  z-index: 2;
+}
+
+.bannerContent {
+  display: flex;
+  width: 100%;
+  height: 80%;
+  margin: 0 auto;
+  max-width: 1200px;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.imageWrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.carouselImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: grayscale(0.2);
+}
+
+.textContent {
+  flex: 1;
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: linear-gradient(
+    to right, 
+    rgba(0,0,0,0.9) 0%, 
+    rgba(0,0,0,0.6) 50%,
+    transparent 100%
+  );
+}
+
+.godTitle {
+  font-size: 3rem;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all 0.5s ease;
+}
+
+.godDescription {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  transform: translateY(30px);
+  opacity: 0;
+  transition: all 0.5s ease 0.2s;
+}
+
+.carouselSlide.active .godTitle,
+.carouselSlide.active .godDescription {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Layout alternado */
+.carouselSlide[data-even="true"] .bannerContent {
+  flex-direction: row-reverse;
+}
+
+.carouselSlide[data-even="true"] .textContent {
+  background: linear-gradient(
+    to left, 
+    rgba(0,0,0,0.9) 0%, 
+    rgba(0,0,0,0.6) 50%,
+    transparent 100%
+  );
+}
+
+@media (max-width: 768px) {
+  .bannerContent {
+    flex-direction: column !important;
+    height: 90%;
+  }
+  
+  .imageWrapper,
+  .textContent {
+    flex: none;
+    width: 100%;
+    height: 50%;
+  }
+  
+  .textContent {
+    padding: 1.5rem;
+  }
+  
+  .godTitle {
+    font-size: 2rem;
+  }
+  
+  .godDescription {
+    font-size: 1rem;
+  }
+}
