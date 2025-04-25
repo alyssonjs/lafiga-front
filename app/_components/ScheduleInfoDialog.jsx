@@ -46,9 +46,9 @@ export default function ScheduleInfoDialog({ isOpen, onClose, schedule, dateDime
           </p>
           <p>
             <strong>Status:</strong>{" "}
-            {schedule.status === 0
+            {schedule.status === 'waiting'
               ? "Pendente"
-              : schedule.status === 1
+              : schedule.status === 'reserved'
               ? "Confirmada"
               : "Cancelada"}
           </p>

@@ -77,7 +77,6 @@ const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
         : await createAdminCharacter(payload);
 
       setSuccessMessage("Personagem criado com sucesso!");
-      console.log(response)
       onSave(response.character);  
       resetForm();
     } catch (err) {

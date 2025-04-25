@@ -6,12 +6,14 @@ import Modal from "../../_components/Modal";
 import SessionForm from "../../_components/SessionForm";
 import Button from "../../_components/Button";
 import Dialog from "../../_components/Button";
+import { useAuth } from "../../_context/AuthContext";
 
 import styles from "../../_styles/Session.module.css";
 
 const SessionPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [cards, setCards] = useState([]);
+  const { user, role, permissions, logoutUser } = useAuth();
 
   const handleAddCard = (newCard) => {
     setCards([...cards, newCard]);
@@ -25,9 +27,12 @@ const SessionPage = () => {
         {/* <button className={styles.createButton} onClick={() => setIsModalOpen(true)}>
             Nova Sessão
           </button> */}
-        <Button size="lg" onClick={() => setIsModalOpen(true)}>
-          Nova Sessão
-        </Button>
+          { role === 'Admin' || role === 'Player' &&
+            <Button size="lg" onClick={() => setIsModalOpen(true)}>
+              Nova Sessão
+            </Button>
+          }
+
       </div>
       <div className={styles.contentWrapper}>
         <div className={styles.cardsContainer}>

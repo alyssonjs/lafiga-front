@@ -62,7 +62,6 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
         : await createPlayerCharacter(payload);
 
       setSuccessMessage("Personagem criado com sucesso!");
-      console.log(response)
       onSave(response.character);  
       resetForm();
     } catch (err) {

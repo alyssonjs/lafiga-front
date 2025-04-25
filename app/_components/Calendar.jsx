@@ -6,6 +6,7 @@ import Button from "./Button";
 import dayjs from "dayjs";
 
 const Calendar = ({
+  isAdmin = false,
   dateDimensions = [],
   yearAndMonth: [year, month],
   onYearAndMonthChange,
@@ -33,13 +34,16 @@ const Calendar = ({
       const date = dayjs(d.date);
       const isPast = date.isBefore(today, "day");
       const isFuture = date.isAfter(today, "day");
+      const isAvailable = d.available
       const scheduleForDay = d.schedule
 
       let cls = styles.dayDisabled;
-      if (scheduleForDay) cls = styles.dayReserved;
+      if (scheduleForDay && !isPast) cls = styles.dayReserved;
+      else if (scheduleForDay && isPast) cls = styles.dayDisabled
+      else if (date.isSame(today, "day") && !isAvailable) cls = styles.dayDisabled;
       else if (date.isSame(today, "day")) cls = styles.dayToday;
+      else if (isFuture && !isAvailable) cls = styles.dayDisabled;
       else if (isFuture) cls = styles.dayEnabled;
-
       return { d, cls, scheduleForDay };
     }),
   ];
@@ -53,18 +57,33 @@ const Calendar = ({
     const { d, cls, scheduleForDay } = cell;
     const date = dayjs(d.date);
 
+    const handleClick = () => {
+      const isDisabledCell = cls === styles.dayDisabled;
+      const isToday = date.isSame(today, "day");
+      const isFuture = date.isAfter(today, "day");
+
+      if (!isDisabledCell) {
+        handleNewSession(d, scheduleForDay);
+        return;
+      }
+    
+      if (isDisabledCell && (isToday || isFuture) && isAdmin) {
+        handleNewSession(d, scheduleForDay);
+        return;
+      }
+    };
+
     return (
       <div
         key={d.date}
         className={`${styles.day} ${cls}`}
-        onClick={() =>
-          cls !== styles.dayDisabled && handleNewSession(d, scheduleForDay)
-        }
+        onClick={handleClick}
       >
         <div className={styles.dayContentWrapper}>{date.date()}</div>
         {scheduleForDay && (
           <div className={styles.scheduleInfo}>
-            <div>{scheduleForDay.group.name}</div>
+            <span>{scheduleForDay.group.name}</span>
+            <p>{scheduleForDay.title}</p>
           </div>
         )}
       </div>

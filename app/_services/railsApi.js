@@ -39,7 +39,7 @@ export async function editAdminUser(userId, user) {
 
 //Users Roles
 export async function getAdminRoles() {
-  return apiClient.get('/api/v1/admin/roles');
+  return apiClient.get('/api/v1/admin/roles'); 
 }
 
 //Schedules Public
@@ -92,8 +92,8 @@ export async function getAdminCharacters() {
   return apiClient.get('/api/v1/admin/characters');
 }
 
-export async function editAdminCharacter(character) {
-  return apiClient.put('/api/v1/admin/characters', character);
+export async function editAdminCharacter(characterId, character) {
+  return apiClient.put(`/api/v1/admin/characters/${characterId}`, character);
 }
 
 export async function createAdminCharacter(character) {
@@ -139,4 +139,8 @@ export async function fetchDateDimensions(year, month) {
   return apiClient.get(
     `/api/v1/public/date_dimensions?year=${year}&month=${month}`
   );
+}
+
+export async function editAdminDateDimension(dateDimensionId, dateDimension) {
+  return apiClient.put(`/api/v1/admin/date_dimensions/${dateDimensionId}`, dateDimension);
 }

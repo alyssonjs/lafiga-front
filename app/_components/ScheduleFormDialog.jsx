@@ -16,16 +16,23 @@ import DatePicker from "./DatePicker";
 import Select from "./Select";
 import styles from "../_styles/ScheduleFormDialog.module.css";
 
+/**
+ * ScheduleFormDialog
+ * ------------------
+ * DatePicker deve SEMPRE ficar desabilitado (somente leitura).
+ */
 export default function ScheduleFormDialog({
+  userRole,
   isOpen,
   onClose,
   onSave,
+  changeDateAvailability,
   initialData = {},
   groups = [],
+  disabledDates = [],
 }) {
-
   const formatDate = (iso) => (iso ? dayjs(iso).format("DD/MM/YYYY") : "");
-
+  console.log(initialData)
   const [date, setDate] = useState(formatDate(initialData.date));
   const [dateDimensionId, setDateDimensionId] = useState(
     initialData.date_dimension_id || null
@@ -33,6 +40,7 @@ export default function ScheduleFormDialog({
   const [title, setTitle] = useState(initialData.title || "");
   const [groupId, setGroupId] = useState(initialData.group_id || "");
   const [status, setStatus] = useState(initialData.status ?? 0);
+  const [disableDate, setDisableDate] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -41,6 +49,7 @@ export default function ScheduleFormDialog({
     setTitle(initialData.title || "");
     setGroupId(initialData.group_id || "");
     setStatus(initialData.status ?? 0);
+    setDisableDate(false);
     setError(null);
   }, [initialData, isOpen]);
 
@@ -64,12 +73,23 @@ export default function ScheduleFormDialog({
     onSave({
       ...initialData,
       date_dimension_id: dateDimensionId,
-      date,        // envia no formato DD/MM/YYYY
+      date,
       title: title.trim(),
       group_id: groupId,
       status,
+      disable_date: disableDate,
     });
   };
+
+  // Mostrar botão habilitar/desabilitar apenas se Admin e data ≥ hoje
+  const today = dayjs().startOf("day");
+  const targetDay = initialData.date
+    ? dayjs(initialData.date).startOf("day")
+    : null;
+  const canToggleAvailability =
+    userRole === "Admin" &&
+    targetDay &&
+    (targetDay.isSame(today) || targetDay.isAfter(today));
 
   if (!isOpen) return null;
 
@@ -78,6 +98,7 @@ export default function ScheduleFormDialog({
       {error && <div className={styles.error}>{error}</div>}
       <DialogHeader>
         <DialogTitle>
+          {!initialData.available && "Habilite a data para marcar uma sessão"}
           {initialData.id ? "Editar Sessão" : "Nova Sessão"}
         </DialogTitle>
         <DialogDescription>
@@ -87,14 +108,13 @@ export default function ScheduleFormDialog({
         </DialogDescription>
       </DialogHeader>
       <DialogContent>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className={styles.formBody}>
           <label className={styles.label}>Data:</label>
           <DatePicker
             date={date}
-            onChange={(newDate, dimId) => {
-              setDate(newDate);
-              setDateDimensionId(dimId);
-            }}
+            onChange={() => {}}
+            disabledDates={disabledDates}
+            isDisabled={true}
           />
 
           <label className={styles.label}>Título:</label>
@@ -103,39 +123,40 @@ export default function ScheduleFormDialog({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Título da sessão"
             required
+            disabled={!initialData.available}
           />
 
           <label className={styles.label}>Grupo:</label>
           <Select
-            options={groups.map((g) => ({
-              id: g.id.toString(),
-              name: g.name,
-            }))}
+            options={groups.map((g) => ({ id: g.id.toString(), name: g.name }))}
             placeholder="Selecione um grupo"
             value={groupId?.toString() || null}
             onChange={(val) => setGroupId(Number(val))}
             required
-          />
-
-          <label className={styles.label}>Status:</label>
-          <Select
-            options={[
-              { id: "0", name: "Pendente" },
-              { id: "1", name: "Confirmada" },
-              { id: "2", name: "Cancelada" },
-            ]}
-            placeholder="Selecione o status"
-            value={status.toString()}
-            onChange={(val) => setStatus(Number(val))}
-            required
+            disabled={!initialData.available}
           />
         </form>
       </DialogContent>
       <DialogFooter>
-        <Button variant="secondary" onClick={onClose}>
+        {canToggleAvailability && (
+          <Button
+            variant="primary"
+            onClick={() =>
+              changeDateAvailability(
+                dateDimensionId,
+                !initialData.available
+              )
+            }
+            type="button"
+          >
+            {initialData.available ? "Desabilitar data" : "Habilitar data"}
+          </Button>
+        )}
+
+        <Button variant="secondary" onClick={onClose} type="button">
           Cancelar
         </Button>
-        <Button variant="highlight" onClick={handleSubmit}>
+        <Button variant="highlight" onClick={handleSubmit} type="submit">
           {initialData.id ? "Salvar" : "Criar"}
         </Button>
       </DialogFooter>

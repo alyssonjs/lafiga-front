@@ -32,6 +32,19 @@
   color: var(--text-primary);
 }
 
+.disabled,
+.selectedText.disabled {
+  cursor: not-allowed;
+  opacity: 0.5; 
+  pointer-events: none; 
+  background-color: var(--secondary); 
+  color: var(--text-secondary);
+}
+
+.selectedText.disabled::after {
+  border-top-color: var(--text-secondary);
+}
+
 .selectedText::after {
   content: "";
   position: absolute;
