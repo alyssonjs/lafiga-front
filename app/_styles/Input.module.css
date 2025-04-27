@@ -2,7 +2,7 @@
   display: flex;
   /* height: 2.5rem; */
   width: -webkit-fill-available;
-  
+  margin: 15px 0px;
   border: 4px solid var(--border);
   background-color: transparent;
   padding-right: 0.75rem;
