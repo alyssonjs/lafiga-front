@@ -12,7 +12,6 @@
 
 .error {
   color: red;
-  font-size: 14px;
   margin-bottom: 10px;
 }
 
@@ -32,6 +31,5 @@
 
 .inlineSection h2 {
   margin-top: 0;
-  font-size: 20px;
   color: var(--text-primary);
 }

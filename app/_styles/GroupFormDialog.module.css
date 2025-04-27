@@ -5,7 +5,7 @@
 }
 
 .label {
-  font-size: 14px;
+  font-size: inherit;
 }
 
 /* Classes locais para cada campo */
@@ -25,5 +25,5 @@
 
 .error {
   color: red;
-  font-size: 14px;
+  font-size: inherit;
 }

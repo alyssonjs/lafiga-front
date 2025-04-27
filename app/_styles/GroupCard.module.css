@@ -18,12 +18,12 @@
 
 .name {
   margin: 0;
-  font-size: 18px;
+  font-size: inherit;
   color: var(--text-primary);
 }
 
 .info {
   margin: 0;
-  font-size: 14px;
+  font-size: inherit;
   color: var(--text-secondary);
 }

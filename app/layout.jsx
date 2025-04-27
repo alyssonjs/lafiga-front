@@ -22,7 +22,7 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">
-      <body className={pixel.className}>
+      <body className={start.className} style={{fontSize: '10px'}}>
         <AuthProvider>
           <Navbar />
           <main>{children}</main>
