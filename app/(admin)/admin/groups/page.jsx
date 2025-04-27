@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Button from "../../../_components/Button";
 import GroupFormDialog from "../../../_components/GroupFormDialog";
 import GroupInfo from "../../../_components/GroupInfo";
 import GroupCard from "../../../_components/GroupCard";
-import { 
-  getAdminGroups, 
-} from "../../../_services/railsApi";
+import { crudFor } from "../../../_services/railsApi";
+import { useAuth } from "../../../_context/AuthContext";
+
 import styles from "../../../_styles/GroupsPage.module.css";
 
 const GroupsPage = () => {
@@ -17,12 +17,18 @@ const GroupsPage = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selected, setSelected] = useState(null);
-
+  const { role } = useAuth();
+  const groupsApi = useMemo(
+    () => crudFor("groups", role),
+    [role]
+  );
   useEffect(() => {
-    getAdminGroups()
-      .then((data) => setGroups(data.groups))
-      .catch((e) => setError(e.message));
-  }, []);
+    if (!role) return;
+    groupsApi
+      .getAll()
+      .then(({ groups }) => setGroups(groups))
+      .catch(console.error)
+  }, [role]);
 
   const addGroup = (grp) => {
     setGroups((prev) => [...prev, grp]);
@@ -80,9 +86,9 @@ const GroupsPage = () => {
 
       {isCreateOpen && 
         <GroupFormDialog
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onSave={addGroup}
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          onSave={addGroup}
         />
       }
 

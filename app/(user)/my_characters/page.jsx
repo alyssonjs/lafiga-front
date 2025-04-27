@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import PlayerCharacterFormDialog from "../../_components/PlayerCharacterFormDialog";
 import CharacterInfo from "../../_components/CharacterInfo";
 import CharacterCard from "../../_components/CharacterCard";
 import Button from "../../_components/Button";
-import { getPlayerCharacters } from "../../_services/railsApi";
+import { useAuth } from "../../_context/AuthContext";
+import { crudFor } from "../../_services/railsApi";
 import styles from "../../_styles/Characters.module.css";
 
 const CharactersPage = () => {
@@ -14,19 +15,19 @@ const CharactersPage = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreationOpen, setIsCreationOpen] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
+  const { role } = useAuth();
+  const charactersApi = useMemo(
+    () => crudFor("characters", role),
+    [role]
+  );
 
   useEffect(() => {
-    async function fetchCharacters() {
-      try {
-        const data = await getPlayerCharacters();
-        setCharacters(data.characters);
-      } catch (err) {
-        console.error("Erro ao buscar personagens:", err);
-        setError(err.message);
-      }
-    }
-    fetchCharacters();
-  }, []);
+    if (!role) return;
+    charactersApi
+      .getAll()
+      .then(({characters}) => setCharacters(characters))
+      .catch(console.error)
+  }, [role]);
 
   const handleAddCharacter = (newChar) => {
     setCharacters((prev) => [...prev, newChar]);
@@ -50,7 +51,7 @@ const CharactersPage = () => {
       prev?.id === char.id ? null : char
     );
   };
-
+  
   return (
     <div className={styles.pageContainer}>
       <div className={styles.header}>

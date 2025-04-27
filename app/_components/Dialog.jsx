@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, forwardRef, useState } from "react";
+import { forwardRef, useEffect, Children, isValidElement, cloneElement } from "react";
 import styles from "../_styles/Dialog.module.css";
 import Button from "./Button";
 import { createPortal } from "react-dom";
@@ -34,7 +34,7 @@ const Dialog = forwardRef(({ isOpen, onClose, children, ...props }, ref) => {
             x
           </Button>
         </div>
-        {children}
+        <div className={styles.dialogBody}>{children}</div>
       </div>
     </div>
   );

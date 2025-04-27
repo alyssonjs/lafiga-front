@@ -53,7 +53,7 @@ const SignupPage = () => {
         permissions: response.permissions,
       });
 
-      if (response.role === "Admin") {
+      if (response.role === "admin") {
         router.push("/admin"); 
       } else {
         router.push("/calendar");

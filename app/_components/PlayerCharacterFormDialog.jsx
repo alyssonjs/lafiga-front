@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogHeader,
@@ -12,7 +12,8 @@ import {
 import TextArea from "./TextArea";
 import Button from "./Button";
 import Input from "./Input";
-import { createPlayerCharacter, editPlayerCharacter } from "../_services/railsApi";
+import { crudFor } from "../_services/railsApi";
+import { useAuth } from "../_context/AuthContext";
 import styles from "../_styles/CharacterForm.module.css";
 
 const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
@@ -22,10 +23,13 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
   const [background, setBackground] = useState("");
   const [groupId, setGroupId] = useState("");
   const [userId, setUserId] = useState("");
-  const [groups, setGroups] = useState([]);
-  const [users, setUsers] = useState([]);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const { role } = useAuth();
+  const charactersApi = useMemo(
+    () => crudFor("characters", role),
+    [role]
+  );
 
   useEffect(() => {
     if (isEdit) {
@@ -58,8 +62,8 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
       const payload = { name, background, group_id: groupId ? +groupId : null, user_id: userId };
       
       const response = isEdit 
-        ? await editPlayerCharacter(character.id, payload) 
-        : await createPlayerCharacter(payload);
+        ? await charactersApi.update(character.id, payload) 
+        : await charactersApi.create(payload);
 
       setSuccessMessage("Personagem criado com sucesso!");
       onSave(response.character);  

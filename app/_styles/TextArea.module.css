@@ -1,6 +1,5 @@
 .textarea {
   display: flex;
-  width: -webkit-fill-available;
   
   border: 4px solid var(--border);
   background-color: transparent;
@@ -14,6 +13,9 @@
   padding-left: 0.5rem;
   font-family: inherit;
   font-size: inherit;
+  max-height: 120px;      /* fixa a altura inicial */
+  resize: vertical;   /* permite esticar só para baixo; use 'none' para bloquear */
+  overflow-y: auto;
 }
 
 .textarea:focus {

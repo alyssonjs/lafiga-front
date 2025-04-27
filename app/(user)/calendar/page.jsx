@@ -1,22 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Calendar from "../../_components/Calendar";
 import ScheduleFormDialog from "../../_components/ScheduleFormDialog";
 import ScheduleInfoDialog from "../../_components/ScheduleInfoDialog";
 import {
+  crudFor,
   fetchDateDimensions,
-  fetchPublicSchedules,
-  getPublicGroups,
-  createAdminSchedule,
-  editAdminSchedule,
-  editAdminDateDimension
 } from "../../_services/railsApi";
 import dayjs from "dayjs";
 import { useAuth } from "../../_context/AuthContext";
 
 export default function CalendarPage() {
-  const [groups, setGroups] = useState([]);
   const [dateDims, setDateDims] = useState([]);
   const [disabledDates, setDisabledDates] = useState([]);
   const [schedules, setSchedules] = useState([]);
@@ -37,22 +32,28 @@ export default function CalendarPage() {
 
   const [year, month] = yearAndMonth;
   const { role } = useAuth();
-
-  useEffect(() => {
-    getPublicGroups()
-      .then((data) => setGroups(data))
-      .catch((e) => setError(e.message));
-  }, []);
+  const schedulesApi = useMemo(
+    () => crudFor("schedules", role),
+    [role]
+  );
+  const dateDimensionsApi = useMemo(
+    () => crudFor("date_dimensions", role),
+    [role]
+  );
 
   useEffect(() => {
     fetchDateDimensions(year, month)
       .then((data) => setDateDims(data))
       .catch((e) => setError(e.message));
-
-    fetchPublicSchedules()
-      .then((data) => setSchedules(data))
-      .catch((e) => setError(e.message));
   }, [year, month]);
+
+  useEffect(() => {
+    schedulesApi
+      .getAll()
+      .then(({ schedules }) => setSchedules(schedules))
+      .catch(console.error)
+      // .finally(() => setLoading(false));
+  }, [schedulesApi]);
 
   useEffect(() => {
     if (!Array.isArray(dateDims) || dateDims.length === 0) return;
@@ -100,57 +101,58 @@ export default function CalendarPage() {
     setError(null);
   };
 
-  const changeDateAvailability = async (dateDimensionId, data) => {
-
+  const changeDateAvailability = async (dateDimensionId, available) => {
     try {
-      let result;
-      result = await editAdminDateDimension(dateDimensionId, { available: data})
-      const updatedDateDimId = result.date_dimension.id;
-      setDateDims((prev) =>
-        prev.map((dd) =>
-          dd.id === updatedDateDimId
-            ? { ...dd, available: result.date_dimension.available }
-            : dd
-        )
-      );
-      setEditing(false);
-      setIsOpen(false);
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-
-  const handleSave = async (data) => {
-    try {
-      let result;
-
-      if (editing) {
-        result = await editAdminSchedule(data.id, data);
-
-        setSchedules((prev) =>
-          prev.map((s) => (s.id === result.schedule.id ? result.schedule : s))
-        );
-      } else {
-        result = await createAdminSchedule(data);
-        setSchedules((prev) => [...prev, result.schedule ]);
-      }
+      const {
+        date_dimension: updatedDim,
+        schedules: refreshedSchedules,
+      } = await dateDimensionsApi.update(dateDimensionId, { available });
   
-      const updatedDateDimId = result.schedule.date_dimension_id;
-
+        setSchedules(refreshedSchedules);
+  
       setDateDims((prev) =>
         prev.map((dd) =>
-          dd.id === updatedDateDimId
-            ? { ...dd, schedule: result.schedule }
-            : dd
+          dd.id === updatedDim.id ? { ...dd, available: updatedDim.available } : dd
         )
       );
+    } catch (err) {
+      console.error("Erro ao alterar disponibilidade:", err);
+      setError("Não foi possível alterar a disponibilidade da data.");
+    } finally {
       setEditing(false);
       setIsOpen(false);
-    } catch (e) {
-      setError(e.message);
     }
   };
+  
 
+  const handleSave = async (payload) => {
+    try {
+      const fn   = editing ? schedulesApi.update : schedulesApi.create;
+      const { schedule } = await fn(payload);
+  
+      setSchedules((prev) => {
+        const exists = prev.some((s) => s.id === schedule.id);
+        return exists
+          ? prev.map((s) => (s.id === schedule.id ? schedule : s)) // replace
+          : [...prev, schedule];                                   // append
+      });
+  
+      setDateDims((prev) =>
+        prev.map((dd) =>
+          dd.id === schedule.date_dimension_id
+            ? { ...dd, schedule }
+            : dd
+        )
+      );
+  
+      setEditing(false);
+      setIsOpen(false);
+    } catch (err) {
+      console.error("Erro ao salvar schedule:", err);
+      setError("Não foi possível salvar a sessão. Tente novamente.");
+    }
+  };
+  
   return (
     <>
       <Calendar
@@ -159,11 +161,11 @@ export default function CalendarPage() {
         yearAndMonth={yearAndMonth}
         onYearAndMonthChange={setYearAndMonth}
         handleNewSession={handleNewSession}
-        isAdmin={role === 'Admin'}
+        isAdmin={role === 'admin'}
       />
 
       {
-        role &&
+        role && isOpen &&
         <ScheduleFormDialog
           isOpen={isOpen}
           onClose={() => setIsOpen(false)}
@@ -171,17 +173,19 @@ export default function CalendarPage() {
           disabledDates={disabledDates}
           initialData={currentSchedule || {}}
           changeDateAvailability={changeDateAvailability}
-          groups={groups}
           userRole={role}
         />
       }
-      <ScheduleInfoDialog
-        isOpen={infoOpen}
-        onClose={() => setInfoOpen(false)}
-        schedule={infoSchedule}
-        dateDimension={infoDateDim}
-        openEditModal={openEditModal}
-      />
+      { 
+        infoOpen &&
+        <ScheduleInfoDialog
+          isOpen={infoOpen}
+          onClose={() => setInfoOpen(false)}
+          schedule={infoSchedule}
+          dateDimension={infoDateDim}
+          openEditModal={openEditModal}
+        />
+      }
 
       {error && <div style={{ color: "red" }}>{error}</div>}
     </>
