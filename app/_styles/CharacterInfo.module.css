@@ -1,7 +1,6 @@
 .userInfo {
   position: relative;
   padding: 20px;
-  font-family: 'Press Start 2P', cursive;
   color: var(--text-primary);
   background-color: var(--light);
   border-radius: 10px;

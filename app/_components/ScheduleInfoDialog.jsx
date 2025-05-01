@@ -13,12 +13,14 @@ import {
   DialogFooter,
 } from "./Dialog";
 import Button from "./Button";
+import { useAuth } from "../_context/AuthContext";
 import styles from "../_styles/ScheduleInfoDialog.module.css";
 
 dayjs.locale("pt-br");
 
 export default function ScheduleInfoDialog({ isOpen, onClose, schedule, dateDimension, openEditModal }) {
   const [formattedDate, setFormattedDate] = useState("");
+  const { role } = useAuth();
 
   useEffect(() => {
     if (dateDimension?.date) {
@@ -82,9 +84,12 @@ export default function ScheduleInfoDialog({ isOpen, onClose, schedule, dateDime
         <Button variant="secondary" onClick={onClose}>
           Fechar
         </Button>
-        <Button variant="highlight" onClick={() => openEditModal(schedule, dateDimension)}>
-          Ajustar
-        </Button>
+        {
+          role === 'admin' && 
+          <Button variant="highlight" onClick={() => openEditModal(schedule, dateDimension)}>
+            Ajustar
+          </Button>
+        }
       </DialogFooter>
     </Dialog>
   );

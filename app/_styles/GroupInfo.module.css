@@ -8,6 +8,6 @@
 
 .description {
   margin-top: 12px;
-  font-size: 14px;
+  font-size: inherit;
   line-height: 1.4;
 }

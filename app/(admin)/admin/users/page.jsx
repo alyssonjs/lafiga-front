@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import UserFormDialog from "../../../_components/UserFormDialog";
 import UserInfo from "../../../_components/UserInfo";
 import UserCard from "../../../_components/UserCard";
-import Button from "../../../_components/Button";
-import { getAdminUsers } from "../../../_services/railsApi";
+import { crudFor } from "../../../_services/railsApi";
+import { useAuth } from "../../../_context/AuthContext";
+
 import styles from "../../../_styles/Users.module.css";
 
 const UsersPage = () => {
@@ -14,20 +15,19 @@ const UsersPage = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreationOpen, setIsCreationOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const { role } = useAuth();
+  const usersApi = useMemo(
+    () => crudFor("users", role),
+    [role]
+  );
 
   useEffect(() => {
-    async function fetchUsers() {
-      try {
-        const dataUsers = await getAdminUsers();
-        setUsers(dataUsers.users);
-      } catch (err) {
-        console.error("Erro ao buscar usuarios:", err);
-        setError(err.message);
-      }
-    }
-    fetchUsers();
-  }, []);
-  
+    if (!role) return;
+    usersApi
+      .getAll()
+      .then(({ users }) => setUsers(users))
+      .catch(console.error)
+  }, [role]);
 
   const handleAddUser = (newChar) => {
     setUsers((prev) => [...prev, newChar]);

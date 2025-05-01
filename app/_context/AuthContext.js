@@ -4,7 +4,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
 
-// Crie o contexto com um objeto padrão
 const AuthContext = createContext({
   user: null,
   token: null,
@@ -14,7 +13,6 @@ const AuthContext = createContext({
   logoutUser: () => {},
 });
 
-// Provider que envolverá toda a aplicação
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
@@ -22,7 +20,6 @@ export const AuthProvider = ({ children }) => {
   const [permissions, setPermissions] = useState(null);
   const router = useRouter();
 
-  // Ao iniciar, carrega as informações armazenadas (ex.: no localStorage)
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user_infos');
@@ -41,11 +38,11 @@ export const AuthProvider = ({ children }) => {
   const loginUser = async (loginData) => {
     localStorage.setItem('token', loginData.token);
     localStorage.setItem('user_infos', JSON.stringify(loginData.user_infos));
-    localStorage.setItem('role', loginData.role);
+    localStorage.setItem('role', loginData.role === 'Admin' ? 'admin' : 'player');
     localStorage.setItem('permissions', JSON.stringify(loginData.permissions));
     setToken(loginData.token);
     setUser(loginData.user_infos);
-    setRole(loginData.role);
+    setRole(loginData.role === 'Admin' ? 'admin' : 'player');
     setPermissions(loginData.permissions);
   };
 

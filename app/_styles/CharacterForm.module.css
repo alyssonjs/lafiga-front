@@ -14,7 +14,6 @@
 }
 
 .inputText {
-  font-family: 'Press Start 2P', cursive;
   padding: 10px;
   font-size: 14px;
   border: 1px solid var(--secondary);
@@ -28,7 +27,6 @@
 }
 
 .submitButton {
-  font-family: 'Press Start 2P', cursive;
   background-color: var(--primary);
   color: var(--text-primary);
   border: none;

@@ -1,7 +1,6 @@
 .userInfo {
   position: relative;
   padding: 20px;
-  font-family: 'Press Start 2P', cursive;
   color: var(--text-primary);
   background-color: var(--light);
   border-radius: 10px;
@@ -14,7 +13,6 @@
   right: 10px;
   background: none;
   border: none;
-  font-size: 24px;
   cursor: pointer;
   color: var(--text-secondary);
 }
@@ -36,10 +34,8 @@
 
 .infoDetails h2 {
   margin: 0 0 10px;
-  font-size: 22px;
 }
 
 .infoDetails p {
   margin: 0 0 10px;
-  font-size: 16px;
 }

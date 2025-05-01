@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
 import {
   Dialog,
@@ -15,12 +15,9 @@ import Button from "./Button";
 import DatePicker from "./DatePicker";
 import Select from "./Select";
 import styles from "../_styles/ScheduleFormDialog.module.css";
+import { useAuth } from "../_context/AuthContext";
+import { crudFor } from "../_services/railsApi";
 
-/**
- * ScheduleFormDialog
- * ------------------
- * DatePicker deve SEMPRE ficar desabilitado (somente leitura).
- */
 export default function ScheduleFormDialog({
   userRole,
   isOpen,
@@ -28,12 +25,11 @@ export default function ScheduleFormDialog({
   onSave,
   changeDateAvailability,
   initialData = {},
-  groups = [],
   disabledDates = [],
 }) {
   const formatDate = (iso) => (iso ? dayjs(iso).format("DD/MM/YYYY") : "");
-  console.log(initialData)
   const [date, setDate] = useState(formatDate(initialData.date));
+  const [groups, setGroups] = useState([]);
   const [dateDimensionId, setDateDimensionId] = useState(
     initialData.date_dimension_id || null
   );
@@ -42,7 +38,19 @@ export default function ScheduleFormDialog({
   const [status, setStatus] = useState(initialData.status ?? 0);
   const [disableDate, setDisableDate] = useState(false);
   const [error, setError] = useState(null);
+  const { role } = useAuth();
+  const groupsApi = useMemo(
+    () => crudFor("groups", role),
+    [role]
+  );
 
+  useEffect(() => {
+    groupsApi
+      .getAll()
+      .then(({ groups }) => setGroups(groups))
+      .catch(console.error)
+  }, [groupsApi]);
+  
   useEffect(() => {
     setDate(formatDate(initialData.date));
     setDateDimensionId(initialData.date_dimension_id || null);
@@ -87,7 +95,7 @@ export default function ScheduleFormDialog({
     ? dayjs(initialData.date).startOf("day")
     : null;
   const canToggleAvailability =
-    userRole === "Admin" &&
+    userRole === "admin" &&
     targetDay &&
     (targetDay.isSame(today) || targetDay.isAfter(today));
 
@@ -127,14 +135,18 @@ export default function ScheduleFormDialog({
           />
 
           <label className={styles.label}>Grupo:</label>
-          <Select
+          { 
+            groups && 
+            <Select
             options={groups.map((g) => ({ id: g.id.toString(), name: g.name }))}
             placeholder="Selecione um grupo"
             value={groupId?.toString() || null}
             onChange={(val) => setGroupId(Number(val))}
             required
             disabled={!initialData.available}
-          />
+            />
+          }
+
         </form>
       </DialogContent>
       <DialogFooter>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogHeader,
@@ -9,10 +9,13 @@ import {
   DialogContent,
   DialogFooter,
 } from "./Dialog";
-import TextArea from "./TextArea";
+import Select from "./Select";
 import Button from "./Button";
 import Input from "./Input";
 import { editAdminUser, getAdminRoles } from "../_services/railsApi";
+import { useAuth } from "../_context/AuthContext";
+import { crudFor } from "../_services/railsApi";
+
 import styles from "../_styles/CharacterForm.module.css";
 
 const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
@@ -25,10 +28,20 @@ const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
   const [roleId, setRoleId] = useState("");
   const [userId, setUserId] = useState("");
   const [roles, setRoles] = useState([]);
+  const { role } = useAuth();
 
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const usersApi = useMemo(
+    () => crudFor("users", role),
+    [role]
+  );
+  const rolesApi = useMemo(
+    () => crudFor("roles", role),
+    [role]
+  );
 
+  
   useEffect(() => {
     if (isEdit) {
       setName(user.name);
@@ -39,8 +52,11 @@ const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
 
       async function fetchRoles() {
         try {
-          const response = await getAdminRoles();
-          setRoles(response.roles || response);
+          rolesApi
+            .getAll()
+            .then(({ roles }) => setRoles(roles))
+            .catch(console.error)
+
         } catch (err) {
           console.error("Erro ao buscar grupos:", err);
           setError("Erro ao buscar grupos");
@@ -54,7 +70,7 @@ const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
       setUserId("");
     }
     setError(null);
-  }, [isOpen, user]);
+  }, [isOpen, user, role]);
 
   const resetForm = () => {
     setName("");
@@ -69,21 +85,28 @@ const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+  
     try {
       const payload = { name, username, email, phone, role_id: roleId };
-
-      const response = isEdit
-        ? await editAdminUser(user.id, payload)
-        : await createAdminUser(payload);
-
-      setSuccessMessage("Personagem criado com sucesso!");
-    
-      onSave(response.user);
+  
+      const data = isEdit
+        ? await usersApi.update(user.id, payload)
+        : await usersApi.create(payload);
+      
+      console.log(data)
+      const savedUser = data.user ?? data;
+  
+      setSuccessMessage(
+        isEdit ? "Usuário atualizado com sucesso!" : "Usuário criado com sucesso!"
+      );
+  
+      onSave(savedUser);
       resetForm();
     } catch (err) {
       setError(err.message);
     }
   };
+  
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
@@ -100,7 +123,6 @@ const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={styles.inputText}
             required
           />
 
@@ -109,7 +131,6 @@ const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
             id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className={styles.inputTextarea}
             required
           />
 
@@ -118,7 +139,6 @@ const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
             id="phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className={styles.inputTextarea}
             required
           />
 
@@ -127,22 +147,17 @@ const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={styles.inputTextarea}
             required
           />
 
           <label htmlFor="role" className={styles.label}>Permissao:</label>
-          <select
-            id="role"
+
+          <Select
+            placeholder="Permissao"
+            options={roles}
             value={roleId}
-            onChange={(e) => setRoleId(e.target.value)}
-            className={styles.selectDropdown}
-          >
-            <option value="">Permissao</option>
-            {roles.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+            onChange={(val) => setRoleId(val)}
+          />
         </form>
       </DialogContent>
       <DialogFooter>

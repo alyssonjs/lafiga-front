@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogHeader,
@@ -12,10 +12,9 @@ import Button from "./Button";
 import Input from "./Input";
 import Select from "./Select";
 import TextArea from "./TextArea";
-import {
-  createAdminGroup,
-  editAdminGroup,
-} from "../_services/railsApi";
+import { crudFor } from "../_services/railsApi";
+import { useAuth } from "../_context/AuthContext";
+
 import styles from "../_styles/GroupFormDialog.module.css";
 
 const seasons = [
@@ -33,6 +32,11 @@ const GroupFormDialog = ({ isOpen, onClose, onSave, group }) => {
   const [day, setDay] = useState("");
   const [year, setYear] = useState("");
   const [description, setDescription] = useState("");
+  const { role } = useAuth();
+  const groupsApi = useMemo(
+    () => crudFor("groups", role),
+    [role]
+  );
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -60,8 +64,8 @@ const GroupFormDialog = ({ isOpen, onClose, onSave, group }) => {
 
     try {
       const resp = isEdit
-        ? await editAdminGroup(group.id, payload)
-        : await createAdminGroup(payload);
+        ? await groupsApi.update(group.id, payload)
+        : await groupsApi.create(payload);
 
       onSave(resp);
       onClose();

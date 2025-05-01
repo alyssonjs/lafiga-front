@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import CharacterFormDialog from "../../../_components/CharacterFormDialog";
 import CharacterInfo from "../../../_components/CharacterInfo";
 import CharacterCard from "../../../_components/CharacterCard";
 import Button from "../../../_components/Button";
-import { getAdminCharacters } from "../../../_services/railsApi";
+import { crudFor } from "../../../_services/railsApi";
+import { useAuth } from "../../../_context/AuthContext";
 import styles from "../../../_styles/Characters.module.css";
 
 const CharactersPage = () => {
@@ -14,19 +15,19 @@ const CharactersPage = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreationOpen, setIsCreationOpen] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
+  const { role } = useAuth();
+  const charactersApi = useMemo(
+    () => crudFor("characters", role),
+    [role]
+  );
 
   useEffect(() => {
-    async function fetchCharacters() {
-      try {
-        const data = await getAdminCharacters();
-        setCharacters(data.characters);
-      } catch (err) {
-        console.error("Erro ao buscar personagens:", err);
-        setError(err.message);
-      }
-    }
-    fetchCharacters();
-  }, []);
+    if (!role) return;
+    charactersApi
+      .getAll()
+      .then(({characters}) => setCharacters(characters))
+      .catch(console.error)
+  }, [role]);
 
   const handleAddCharacter = (newChar) => {
     setCharacters((prev) => [...prev, newChar]);
@@ -39,6 +40,8 @@ const CharactersPage = () => {
   }
 
   const editCharacter = (chrac) => {
+
+    
     setCharacters((prev) =>
       prev.map((c) => (c.id === chrac.id ? chrac : c))
     );
@@ -76,6 +79,7 @@ const CharactersPage = () => {
           isOpen={open}
           onClose={() => setIsCreationOpen(false)}
           onSave={handleAddCharacter}
+          charactersApi={charactersApi}
         />
       )}
 
@@ -85,6 +89,7 @@ const CharactersPage = () => {
           onClose={() => closeEditCharacter()}
           onSave={editCharacter}
           character={selectedCharacter}
+          charactersApi={charactersApi}
         />
       )}
 

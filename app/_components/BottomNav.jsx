@@ -28,7 +28,7 @@ const BottomNav = () => {
             </Button>
           )}
         </Link>
-        { role === 'User' &&
+        { role === 'player' &&
           <>
             <Link href="/my_characters" onClick={() => handleMenu("my_characters")}>
               {current === "my_characters" ? (
@@ -41,7 +41,7 @@ const BottomNav = () => {
             </Link>
           </>
         }
-        { role === 'Admin' &&
+        { role === 'admin' &&
         <>
           <Link href="/admin/components" onClick={() => handleMenu("components")}>
             {current === "components" ? (

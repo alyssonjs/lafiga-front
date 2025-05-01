@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "../../_styles/Login.module.css";
@@ -24,11 +24,9 @@ const LoginPage = () => {
 
   // redirects the user if user is logged in.
 
-  useEffect(() => {
-    if (user) {
-      router.push("/calendar");
-    }
-  }, [user, router]);
+  if (user) {
+    router.push("/calendar");
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,11 +43,12 @@ const LoginPage = () => {
         permissions: response.permissions,
       });
 
+
       // Not implemented yet, but should redirect to admin screen or
       // player screen
-      if (response.role === "Admin") {
+      if (response.role === "admin") {
         router.push("/calendar");
-      } else if (response.role === "Player") {
+      } else if (response.role === "player") {
         router.push("/calendar");
       }
     } catch (err) {

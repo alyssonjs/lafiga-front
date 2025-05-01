@@ -1,8 +1,16 @@
 @import "flatpickr/dist/flatpickr.min.css";
-@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+@font-face {
+  font-family: "Pixellari";
+  src: url("/fonts/pixellari/Pixellari.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap; /* evita atraso de renderização */
+}
 
 :root {
   /* Paleta Principal */
+  --font-pixel: "Pixellari", sans-serif;
   --default: #ffffff;
   --default-hover: #f0f0f0;
   --primary: #a21d21; /* Vermelho intenso - elementos principais */
@@ -40,8 +48,9 @@ body {
   padding: 0;
   background-color: var(--background);
   color: var(--text-primary);
-  text-shadow: rgba(0,0,0,.01) 0 0 1px;
+  font-family: var(--font-pixel);   /* ← AQUI */
   font-size: 16px;
+  text-shadow: rgba(0,0,0,.01) 0 0 1px;
 }
 
 input,

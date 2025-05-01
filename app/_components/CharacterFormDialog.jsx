@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogHeader,
@@ -11,11 +11,19 @@ import {
 } from "./Dialog";
 import TextArea from "./TextArea";
 import Button from "./Button";
+import Select from "./Select";
 import Input from "./Input";
-import { createAdminCharacter, editAdminCharacter, getPublicGroups, getAdminUsers } from "../_services/railsApi";
+import { useAuth } from "../_context/AuthContext";
+import { crudFor } from "../_services/railsApi";
 import styles from "../_styles/CharacterForm.module.css";
 
-const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
+const CharacterFormDialog = ({ 
+  character,
+  isOpen,
+  onClose,
+  onSave, 
+  charactersApi
+ }) => {
   const isEdit = Boolean(character);
 
   const [name, setName] = useState("");
@@ -26,7 +34,15 @@ const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
   const [users, setUsers] = useState([]);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-
+  const { role } = useAuth();
+  const groupsApi = useMemo(
+    () => crudFor("groups", role),
+    [role]
+  );
+  const usersApi = useMemo(
+    () => crudFor("users", role),
+    [role]
+  );
   useEffect(() => {
     if (isEdit) {
       setName(character.name);
@@ -43,20 +59,24 @@ const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
   }, [isOpen, character]);
 
   useEffect(() => {
-    async function fetchGroups() {
-      try {
-        const responseGroups = await getPublicGroups();
-        const responseUsers = await getAdminUsers();
-        setGroups(responseGroups.groups || responseGroups);
-        setUsers(responseUsers.users || responseUsers);
+    if (!role) return;
 
+    (async () => {
+      try {
+        const [{ groups }, { users }] = await Promise.all([
+          groupsApi.getAll(),
+          usersApi.getAll(),
+        ]);
+
+        setGroups(groups);
+        setUsers(users);
       } catch (err) {
-        console.error("Erro ao buscar grupos:", err);
-        setError("Erro ao buscar grupos");
+        console.error("Falha ao carregar dados:", err);
+        setError("Não foi possível carregar grupos ou usuários.");
       }
-    }
-    fetchGroups();
-  }, []);
+    })();
+  }, [role]);
+
 
   const resetForm = () => {
     setName("");
@@ -71,11 +91,11 @@ const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
     setError(null);
     try {
       const payload = { name, background, group_id: groupId ? +groupId : null, user_id: userId };
-      
+      console.log()
       const response = isEdit 
-        ? await editAdminCharacter(character.id, payload) 
-        : await createAdminCharacter(payload);
-
+        ? await charactersApi.update(character.id, payload) 
+        : await charactersApi.create(payload);
+      
       setSuccessMessage("Personagem criado com sucesso!");
       onSave(response.character);  
       resetForm();
@@ -99,7 +119,6 @@ const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={styles.inputText}
             required
           />
 
@@ -108,36 +127,23 @@ const CharacterFormDialog = ({ character, isOpen, onClose, onSave }) => {
             id="background"
             value={background}
             onChange={(e) => setBackground(e.target.value)}
-            className={styles.inputTextarea}
             required
           />
 
           <label htmlFor="group" className={styles.label}>Grupo:</label>
-          <select
-            id="group"
+          <Select
+            placeholder="Selecione um grupo"
+            options={groups}
             value={groupId}
-            onChange={(e) => setGroupId(e.target.value)}
-            className={styles.selectDropdown}
-          >
-            <option value="">Selecione um grupo</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-
+            onChange={(val) => setGroupId(val)}
+          />
           <label htmlFor="user" className={styles.label}>User:</label>
-          <select
-            id="user"
+          <Select
+            placeholder="Selecione o usuario"
+            options={users}
             value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            className={styles.selectDropdown}
-          >
-            <option value="">Selecione o usuario</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
-
+            onChange={(val) => setUserId(val)}
+          />
         </form>
       </DialogContent>
       <DialogFooter>

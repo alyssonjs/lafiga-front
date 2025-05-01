@@ -93,21 +93,6 @@
 } */
 
 /* Lista de personagens */
-.characterList {
-  list-style-type: none;
-  padding: 0;
-  margin: 5px 0 0 0;
-}
-
-.characterList li {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 10px;
-  color: #000;
-  margin-bottom: 3px;
-  word-wrap: break-word;
-  text-shadow: 1px 1px 0 var(--accent);
-}
-
 .card {
   display: flex;
   flex-direction: column;
@@ -115,6 +100,20 @@
   background-color: var(--medium);
   color: var(--text-secondary);
   box-shadow: 4px 4px 0px var(--border);
+}
+
+.card:hover {
+  cursor: pointer;
+  background-color: var(--medium-hover);
+  transition: background-color 0.2s ease;
+  box-shadow: 2px 2px 0 0 var(--border);
+  transform: translate(2px, 2px);
+}
+
+.card:active {
+  transition: 50ms ease;
+  box-shadow: 0 0 0 0 var(--border);
+  transform: translate(4px, 4px);
 }
 
 .cardHeader {
@@ -125,14 +124,12 @@
 }
 
 .cardTitle {
-  font-size: 1.5rem;
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.025em;
 }
 
 .cardDescription {
-  font-size: 0.875rem;
 }
 
 .cardContent {
