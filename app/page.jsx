@@ -11,7 +11,7 @@ const HomePage = () => {
   return (
     <>
       <SessionPage />
-      <Toaster />
+      {/* <Toaster /> */}
     </>
   );
 };
