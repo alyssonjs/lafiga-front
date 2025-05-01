@@ -108,7 +108,7 @@ export default function ScheduleFormDialog({
         </DialogDescription>
       </DialogHeader>
       <DialogContent>
-        <form onSubmit={handleSubmit} className={styles.formBody}>
+        <form onSubmit={handleSubmit} className={styles.form}>
           <label className={styles.label}>Data:</label>
           <DatePicker
             date={date}

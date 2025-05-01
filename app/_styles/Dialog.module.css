@@ -7,8 +7,9 @@
   color: var(--text-secondary);
   box-shadow: 4px 4px 0px var(--border);
 
-  width: 400px;
+  width: auto;
   max-height: 80vh;
+  z-index: 10;
 }
 
 .dialogOverlay {

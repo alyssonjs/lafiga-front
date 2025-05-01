@@ -1,0 +1,81 @@
+.toastList {
+  position: fixed;
+  padding: 1em; /* Substituído var(--toast-list-padding) */
+  width: 100%;
+  max-width: 400px; /* Substituído var(--toast-list-width) */
+  max-height: 100vh;
+  overflow: hidden auto;
+}
+
+.toastListTopLeft {
+  top: 0;
+  left: 0;
+}
+
+.toastListTopRight {
+  top: 0;
+  right: 0;
+}
+
+.toastListBottomLeft {
+  bottom: 0;
+  left: 0;
+}
+
+.toastListBottomRight {
+  bottom: 0;
+  right: 0;
+}
+
+.toastListTopLeft .toast,
+.toastListBottomLeft .toast {
+  animation: toastInLeft 250ms; /* Substituído var(--toast-speed) */
+}
+
+.toastListTopRight .toast,
+.toastListBottomRight .toast {
+  animation: toastInRight 250ms; /* Substituído var(--toast-speed) */
+}
+
+.toastList .toast {
+  transition: transform 250ms, /* Substituído var(--toast-speed) */
+    opacity 250ms, /* Substituído var(--toast-speed) */
+    box-shadow 250ms ease-in-out; /* Substituído var(--toast-speed) */
+}
+
+@keyframes toastInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+
+.toastList::-webkit-scrollbar {
+  width: 0.35em;
+}
+
+.toastList::-webkit-scrollbar-track {
+  background-color: hsl(var(--secondary-hue) 10% 75%);
+  border-radius: 0.35em;
+}
+
+.toastList::-webkit-scrollbarThumb {
+  border-radius: 0.35em;
+  background-color: hsl(var(--secondary-hue) 10% 65%);
+}
+
+.toastList::-webkit-scrollbarThumb:windowInactive {
+  background-color: hsl(var(--secondary-hue) 10% 50%);
+}
