@@ -7,14 +7,16 @@ const Navbar = () => {
   return (
     <div className={styles.navbar}>
       <div className={styles.navbarBrand}>
-        <Image
-          src="lafiga_horz_filled.svg"
-          alt="Lafiga Logo"
-          width={150}
-          height={100}
-          className={styles.navbarLogo}
-          priority
-        />
+        <Link href="/">
+          <Image
+            src="lafiga_horz_filled.svg"
+            alt="Lafiga Logo"
+            width={150}
+            height={100}
+            className={styles.navbarLogo}
+            priority
+          />
+        </Link>
       </div>
     </div>
   );

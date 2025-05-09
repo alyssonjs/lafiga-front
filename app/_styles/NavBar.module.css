@@ -6,7 +6,7 @@
   width: 100%;
   height: 85px;
   z-index: 1000;
-  background-color: var(--background);
+  background-color: #242424;
 
   display: flex;
   justify-content: center;
@@ -26,6 +26,7 @@
   color: var(--highlight);
   text-shadow: 2px 2px var(--primary), 4px 4px var(--dark);
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .navbarLogo:hover {
