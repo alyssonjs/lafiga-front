@@ -1,0 +1,67 @@
+.toast {
+  background-color: hsl(var(--secondary-hue) 15% 100%);
+  padding: 1.5em;
+  box-shadow: hsl(var(--secondary-hue) 10% 10% / 10%) 0px 1px 3px 0px,
+    hsl(var(--secondary-hue) 10% 10% / 5%) 0px 1px 2px 0px;
+  border-radius: 0.5em;
+  position: relative;
+  color: hsl(var(--secondary-hue) 10% 25%);
+  opacity: 0.99;
+}
+
+.toast:hover {
+  opacity: 1;
+  box-shadow: hsl(var(--secondary-hue) 10% 10% / 30%) 0px 1px 3px 0px,
+    hsl(var(--secondary-hue) 10% 10% / 15%) 0px 1px 2px 0px;
+}
+
+.toast + .toast {
+  margin-top: 0.5em;
+}
+
+.toastMessage {
+  display: flex;
+  gap: 1em;
+  align-items: top;
+}
+
+.toastCloseBtn {
+  position: absolute;
+  top: 0.5em;
+  right: 0.5em;
+  padding: 0;
+  line-height: 1;
+  height: 1em;
+  width: 1em;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+.toastSuccess {
+  color: hsl(150 97% 3%);
+  background-color: hsl(150 98% 99%);
+}
+
+.toastSuccess .iconThumb {
+  color: hsl(150 90% 40%);
+}
+
+.toastFailure {
+  color: hsl(20 97% 3%);
+  background-color: hsl(20 98% 99%);
+}
+
+.toastFailure .iconThumb {
+  color: hsl(20 90% 40%);
+}
+
+.toastWarning {
+  color: hsl(205 97% 3%);
+  background-color: hsl(205 98% 99%);
+}
+
+.toastWarning .iconThumb {
+  color: hsl(205 90% 40%);
+}
