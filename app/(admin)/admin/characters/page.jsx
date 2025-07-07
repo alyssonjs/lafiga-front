@@ -29,6 +29,10 @@ const CharactersPage = () => {
       .catch(console.error)
   }, [role]);
 
+  useEffect(() => {
+    console.log(characters);
+  }), [characters]
+
   const handleAddCharacter = (newChar) => {
     setCharacters((prev) => [...prev, newChar]);
     setIsCreationOpen(false);
