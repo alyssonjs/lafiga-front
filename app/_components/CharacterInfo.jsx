@@ -15,34 +15,36 @@ import styles from "../_styles/CharacterInfo.module.css";
 const CharacterInfo = ({ character, onClose, setIsEditOpen }) => {
   return (
     <Dialog onClose={onClose}>
-      <DialogHeader>
-        <DialogTitle>{character.name}</DialogTitle>
-        {character.group && (
-          <DialogDescription>Grupo: {character.group.name}</DialogDescription>
-        )}
-      </DialogHeader>
-
-      <DialogContent>
-        <div className={styles.infoPhoto}>
-          {character.photo ? (
-            <img src={character.photo} alt={character.name} />
-          ) : (
-            <div className={styles.noPhoto}></div>
+      <div className={styles.cardSize}>
+        <DialogHeader>
+          <DialogTitle>{character.name}</DialogTitle>
+          {character.group && (
+            <DialogDescription>Grupo: {character.group.name}</DialogDescription>
           )}
-        </div>
-        <div className={styles.infoDetails}>
-          <div className={styles.background}>
-            <strong>Background:</strong>
-            <div
-              className={styles.backgroundText}
-              dangerouslySetInnerHTML={{ __html: character.background }}
-            />
+        </DialogHeader>
+
+        <DialogContent>
+          <div className={styles.infoPhoto}>
+            {character.photo ? (
+              <img src={character.photo} alt={character.name} />
+            ) : (
+              <div className={styles.noPhoto}></div>
+            )}
           </div>
-        </div>
-      </DialogContent>
-      <DialogFooter>
-        <Button variant="highlight" onClick={() => setIsEditOpen(true)}>Editar</Button>
-      </DialogFooter>     
+          <div className={styles.infoDetails}>
+            <div className={styles.background}>
+              <strong>Background:</strong>
+              <div
+                className={styles.backgroundText}
+                dangerouslySetInnerHTML={{ __html: character.background }}
+              />
+            </div>
+          </div>
+        </DialogContent>
+        <DialogFooter>
+          <Button variant="highlight" onClick={() => setIsEditOpen(true)}>Editar</Button>
+        </DialogFooter>     
+      </div>
     </Dialog>
   );
 };

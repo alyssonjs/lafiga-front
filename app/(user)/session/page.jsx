@@ -1,9 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
-import Card from "../../_components/Card";
-import Modal from "../../_components/Modal";
-import SessionForm from "../../_components/SessionForm";
 import Button from "../../_components/Button";
 import ScheduleCard from "../../_components/ScheduleCard";
 import { useAuth } from "../../_context/AuthContext";
@@ -20,11 +18,6 @@ export default function SessionPage() {
     [role]
   );
 
-  const handleAddSchedule = (newSchedule) => {
-    setSchedules((prev) => [...prev, newSchedule]);
-    setIsModalOpen(false);
-  };
-
   useEffect(() => {
     schedulesApi
       .getAll()
@@ -35,11 +28,13 @@ export default function SessionPage() {
   return (
     <div className={styles.pageContainer}>
       <header className={styles.sessionHeader}>
-        <h2 className={styles.pageTitle}>Quadro de Sessões</h2>
+        <h1 className={styles.pageTitle}>Quadro de Sessões</h1>
         {(role === "admin" || role === "player") && (
-          <Button size="lg" onClick={() => setIsModalOpen(true)}>
-            Nova Sessão
-          </Button>
+          <Link href="/calendar">
+            <Button size="lg">
+              Nova Sessão
+            </Button>
+          </Link>
         )}
       </header>
 
@@ -50,11 +45,6 @@ export default function SessionPage() {
           <ScheduleCard key={schedule.id} schedule={schedule} />
         ))}
       </section>
-
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <h2>Criar Nova Sessão</h2>
-        <SessionForm onSubmit={handleAddSchedule} />
-      </Modal>
     </div>
   );
 }

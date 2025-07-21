@@ -42,3 +42,9 @@
   margin: 0 0 10px;
   font-size: 16px;
 }
+
+.cardSize {
+  width: auto;
+  min-width: 500px;
+  max-width: 800px;
+}
