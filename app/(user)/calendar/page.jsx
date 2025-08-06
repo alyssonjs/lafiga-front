@@ -43,7 +43,14 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetchDateDimensions(year, month)
-      .then((data) => setDateDims(data))
+      .then((data) => {
+        const mapped = data.map((d) => ({
+          ...d,
+          // força horário local: ano, mês-1, dia
+          date: new Date(d.year, d.month - 1, d.day),
+        }));
+        setDateDims(mapped);
+      })
       .catch((e) => setError(e.message));
   }, [year, month]);
 
@@ -51,19 +58,14 @@ export default function CalendarPage() {
     schedulesApi
       .getAll()
       .then(({ schedules }) => setSchedules(schedules))
-      .catch(console.error)
-      // .finally(() => setLoading(false));
+      .catch(console.error);
   }, [schedulesApi]);
 
   useEffect(() => {
-    if (!Array.isArray(dateDims) || dateDims.length === 0) return;
-  
+    if (dateDims.length === 0) return;
     const toDisable = dateDims
-      .filter(d => !d.available)
-      .map(d =>
-        dayjs(`${d.year}-${d.month}-${d.day}`, 'YYYY-M-D').toDate()
-      );
-  
+      .filter((d) => !d.available)
+      .map((d) => d.date);
     setDisabledDates(toDisable);
   }, [dateDims]);
 
@@ -161,8 +163,8 @@ export default function CalendarPage() {
         yearAndMonth={yearAndMonth}
         onYearAndMonthChange={setYearAndMonth}
         handleNewSession={handleNewSession}
-        isAdmin={role === 'admin'}
-      />
+        isAdmin={role === "admin"}
+=      />
 
       {
         role && isOpen &&

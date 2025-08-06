@@ -26,7 +26,7 @@ const Calendar = ({
   );
 
   const firstOfMonth = dayjs(new Date(year, month - 1, 1));
-  const blanksBefore = (firstOfMonth.day() + 6) % 7;
+  const blanksBefore = firstOfMonth.day();
 
   const cells = [
     ...Array(blanksBefore).fill(null),
