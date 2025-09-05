@@ -7,7 +7,7 @@ import styles from '../_styles/Modal.module.css';
 const Modal = ({ isOpen, onClose, children }) => {
   const modalRef = useRef(null);
 
-  // Remove o fechamento do modal ao clicar fora dele
+  // Controla o scroll da pagina ao abrir e fechar o modal
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'; // Impede o scroll da página quando o modal está aberto

@@ -65,8 +65,6 @@ const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
       fetchRoles();
     } else {
       setName("");
-      setBackground("");
-      setGroupId("");
       setUserId("");
     }
     setError(null);

@@ -66,7 +66,7 @@ const SignupPage = () => {
 
   return (
     <div className={styles.loginContainer}>
-      Voce sera registrado como visitando e o mestre ira lhe dar a permissao de jogar
+      Voce sera registrado como visitante e o mestre ira lhe dar a permissao de jogar
 
       <Card style={{ width: "300px" }}>
         <CardHeader>
