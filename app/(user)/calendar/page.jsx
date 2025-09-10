@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import Calendar from "../../_components/Calendar";
-import ScheduleFormDialog from "../../_components/ScheduleFormDialog";
-import ScheduleInfoDialog from "../../_components/ScheduleInfoDialog";
+import Calendar from "../../_components/UI/Calendar";
+import ScheduleFormDialog from "../../_components/schedule/ScheduleFormDialog";
+import ScheduleInfoDialog from "../../_components/schedule/ScheduleInfoDialog";
 import {
   crudFor,
   fetchDateDimensions,
@@ -89,7 +89,6 @@ export default function CalendarPage() {
       setInfoOpen(true);
 
     } else {
-      console.log(dateDim, '1')
       setCurrentSchedule({
         date_dimension_id: dateDim.id,
         date: dateDim.date,

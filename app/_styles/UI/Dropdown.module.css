@@ -1,0 +1,46 @@
+.dropdownContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown {
+  position: relative;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px 4px 0px 0px;
+}
+
+.dropdown.active {
+  background-color: var(--text-primary);
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.triggerWrapper {
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.dropdown.active .triggerWrapper {
+  color: white;
+}
+
+.dropdownContent {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 100%;
+  width: auto;
+  background-color: var(--text-primary);
+  border-radius: 4px 0 4px 4px;
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  overflow: hidden;
+}

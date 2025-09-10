@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import SessionPage from "./(user)/session/page";
-import Toaster from "./_components/Toaster";
+import SessionPage from "./_components/home/SessionPage";
+import Toaster from "./_components/UI/toast/Toaster";
 
 const HomePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);

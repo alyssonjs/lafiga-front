@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Button from "../../../_components/Button";
-import GroupFormDialog from "../../../_components/GroupFormDialog";
-import GroupInfo from "../../../_components/GroupInfo";
-import GroupCard from "../../../_components/GroupCard";
+import Button from "../../../_components/UI/Button";
+import GroupFormDialog from "../../../_components/group/GroupFormDialog";
+import GroupInfo from "../../../_components/group/GroupInfo";
+import GroupCard from "../../../_components/group/GroupCard";
 import { crudFor } from "../../../_services/railsApi";
 import { useAuth } from "../../../_context/AuthContext";
 
-import styles from "../../../_styles/GroupsPage.module.css";
+import styles from "../../../_styles/group/GroupsPage.module.css";
 
 const GroupsPage = () => {
   const [groups, setGroups] = useState([]);

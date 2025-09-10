@@ -1,0 +1,32 @@
+.optionsContainer {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-direction: column;
+  width: fit-content;
+  padding: 18px 12px 8px 12px;
+  gap: 10px;
+  width: auto;
+}
+
+.optionContainer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-decoration: none !important;
+  width: 100%;
+  border-bottom: 1px solid var(--muted);
+  padding-bottom: 10px;
+}
+
+.optionContainer:last-child {
+  border-bottom: none;
+}
+
+.optionText {
+  color: var(--text-secondary);
+  font-size: inherit;
+  margin-left: 8px;
+  white-space: nowrap;
+  padding-top: 4px;
+}

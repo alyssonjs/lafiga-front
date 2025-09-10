@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import PlayerCharacterFormDialog from "../../_components/PlayerCharacterFormDialog";
-import CharacterInfo from "../../_components/CharacterInfo";
-import CharacterCard from "../../_components/CharacterCard";
-import Button from "../../_components/Button";
+import PlayerCharacterFormDialog from "../../_components/character/PlayerCharacterFormDialog";
+import CharacterInfo from "../../_components/character/CharacterInfo";
+import CharacterCard from "../../_components/character/CharacterCard";
+import Button from "../../_components/UI/Button";
 import { useAuth } from "../../_context/AuthContext";
 import { crudFor } from "../../_services/railsApi";
-import styles from "../../_styles/Characters.module.css";
+import styles from "../../_styles/character/Characters.module.css";
 
 const CharactersPage = () => {
   const [characters, setCharacters] = useState([]);

@@ -1,6 +1,5 @@
 import "./globals.css";
-import Navbar from "./_components/Navbar";
-import BottomNav from "./_components/BottomNav";
+import Navbar from "./_components/navbar/Navbar";
 import { AuthProvider } from './_context/AuthContext';
 export const metadata = {
   title: "Lafiga - Quadro de Sessões",
@@ -22,7 +21,6 @@ export default function RootLayout({ children }) {
           <Navbar />
           <main>{children}</main>
           <div id="dialogRoot" />
-          <BottomNav />
         </AuthProvider>
       </body>
     </html>

@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Add useEffect import
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import styles from "../../_styles/Login.module.css";
+import styles from "../../_styles/loginPage/Login.module.css";
 import Card, {
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../../_components/Card";
-import Input from "../../_components/Input";
-import Button from "../../_components/Button";
+} from "../../_components/UI/Card";
+import Input from "../../_components/UI/Input";
+import Button from "../../_components/UI/Button";
 import { login } from "../../_services/railsApi";
 import { useAuth } from "../../_context/AuthContext";
 
@@ -19,23 +19,21 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
-  const router = useRouter(); // para redirecionamento
+  const router = useRouter();
   const { user, loginUser } = useAuth();
 
-  // redirects the user if user is logged in.
-
-  if (user) {
-    router.push("/calendar");
-  }
+  // Move the redirect logic to useEffect
+  useEffect(() => {
+    if (user) {
+      router.push("/calendar");
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       const response = await login({ email, password });
-      console.log("Login realizado com sucesso:", response);
-      
-      // Store the data in a context and keeps the login
       loginUser({
         token: response.token,
         user_infos: response.user_infos,
@@ -43,9 +41,6 @@ const LoginPage = () => {
         permissions: response.permissions,
       });
 
-
-      // Not implemented yet, but should redirect to admin screen or
-      // player screen
       if (response.role === "admin") {
         router.push("/calendar");
       } else if (response.role === "player") {

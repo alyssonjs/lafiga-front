@@ -1,0 +1,66 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 85px;
+  z-index: 1;
+  background-color: #242424;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: inherit;  
+}
+
+.navbarBrand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbarLogo {
+  font-size: 20px;
+  text-transform: uppercase;
+  color: var(--highlight);
+  text-shadow: 2px 2px var(--primary), 4px 4px var(--dark);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.navbarLogo:hover {
+  text-shadow: 2px 2px var(--primary), 4px 4px var(--dark),
+    0 0 10px rgba(247, 201, 11, 0.8);
+
+  object-fit: contain;
+  height: auto;
+  width: auto;
+  max-height: 60px;
+}
+
+.navbarMenu {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-content: flex-start;
+  padding-right: 12px;
+}
+
+@media (min-width: 768px) {
+  .navbar {
+    justify-content: center; /* Centraliza os itens */
+  }
+  
+  .navbarBrand {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%); /* Centralização precisa */
+  }
+  
+  .navbarMenu {
+    position: absolute;
+    right: 1rem;
+  }
+}

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import UserFormDialog from "../../../_components/UserFormDialog";
-import UserInfo from "../../../_components/UserInfo";
-import UserCard from "../../../_components/UserCard";
+import UserFormDialog from "../../../_components/user/UserFormDialog";
+import UserInfo from "../../../_components/user/UserInfo";
+import UserCard from "../../../_components/user/UserCard";
 import { crudFor } from "../../../_services/railsApi";
 import { useAuth } from "../../../_context/AuthContext";
 
-import styles from "../../../_styles/Users.module.css";
+import styles from "../../../_styles/user/Users.module.css";
 
 const UsersPage = () => {
   const [users, setUsers] = useState([]);
