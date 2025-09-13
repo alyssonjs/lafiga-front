@@ -28,6 +28,7 @@ export default function ScheduleFormDialog({
   disabledDates = [],
 }) {
   const formatDate = (iso) => (iso ? dayjs(iso).format("DD/MM/YYYY") : "");
+  const { role } = useAuth();
   const [date, setDate] = useState(formatDate(initialData.date));
   const [groups, setGroups] = useState([]);
   const [dateDimensionId, setDateDimensionId] = useState(
@@ -35,10 +36,13 @@ export default function ScheduleFormDialog({
   );
   const [title, setTitle] = useState(initialData.title || "");
   const [groupId, setGroupId] = useState(initialData.group_id || "");
-  const [status, setStatus] = useState(initialData.status ?? 0);
+  const [status, setStatus] = useState(
+    typeof initialData.status !== 'undefined'
+      ? initialData.status
+      : (role === 'admin' ? 'reserved' : 'waiting')
+  );
   const [disableDate, setDisableDate] = useState(false);
   const [error, setError] = useState(null);
-  const { role } = useAuth();
   const groupsApi = useMemo(
     () => crudFor("groups", role),
     [role]
@@ -56,10 +60,14 @@ export default function ScheduleFormDialog({
     setDateDimensionId(initialData.date_dimension_id || null);
     setTitle(initialData.title || "");
     setGroupId(initialData.group_id || "");
-    setStatus(initialData.status ?? 0);
+    setStatus(
+      typeof initialData.status !== 'undefined'
+        ? initialData.status
+        : (role === 'admin' ? 'reserved' : 'waiting')
+    );
     setDisableDate(false);
     setError(null);
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, role]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

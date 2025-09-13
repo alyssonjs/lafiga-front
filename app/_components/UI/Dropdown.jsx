@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import styles from "../../_styles/UI/Dropdown.module.css";
 
-const Dropdown = ({ trigger, children, contentWidth = "auto", onOutsideClick }) => {
+const Dropdown = ({ trigger, children, contentWidth = "auto", onOutsideClick, onOpenChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -11,19 +11,33 @@ const Dropdown = ({ trigger, children, contentWidth = "auto", onOutsideClick }) 
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
+        if (onOpenChange) onOpenChange(false);
         if (onOutsideClick) {
           onOutsideClick();
         }
       }
     };
 
+    const handleKey = (event) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        if (onOpenChange) onOpenChange(false);
+        if (onOutsideClick) onOutsideClick();
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onOutsideClick]);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [onOutsideClick, onOpenChange]);
 
   const handleToggle = () => {
     const newState = !isOpen;
     setIsOpen(newState);
+    if (onOpenChange) onOpenChange(newState);
     if (!newState && onOutsideClick) {
       onOutsideClick();
     }

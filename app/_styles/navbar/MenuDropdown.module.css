@@ -4,8 +4,8 @@
   align-items: flex-start;
   flex-direction: column;
   width: fit-content;
-  padding: 18px 12px 8px 12px;
-  gap: 10px;
+  padding: 8px 8px;
+  gap: 5px;
   width: auto;
 }
 
@@ -16,7 +16,9 @@
   text-decoration: none !important;
   width: 100%;
   border-bottom: 1px solid var(--muted);
-  padding-bottom: 10px;
+  padding: 8px 8px 10px 8px;
+  color: var(--text-secondary);
+  transition: background-color 0.2s ease, transform 0.05s ease, box-shadow 0.05s ease;
 }
 
 .optionContainer:last-child {
@@ -29,4 +31,17 @@
   margin-left: 8px;
   white-space: nowrap;
   padding-top: 4px;
+}
+
+.optionContainer:hover {
+  cursor: pointer;
+  background-color: var(--medium-hover);
+  box-shadow: 2px 2px 0 0 var(--border);
+  transform: translate(2px, 2px);
+}
+
+.optionContainer:active {
+  transition: 50ms ease;
+  box-shadow: 0 0 0 0 var(--border);
+  transform: translate(4px, 4px);
 }

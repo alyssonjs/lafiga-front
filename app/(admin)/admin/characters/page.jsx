@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import CharacterFormDialog from "../../../_components/character/CharacterFormDialog";
-import CharacterInfo from "../../../_components/character/CharacterInfo";
 import CharacterCard from "../../../_components/character/CharacterCard";
+import CharacterSheet from "../../../_components/CharacterSheet";
 import Button from "../../../_components/UI/Button";
 import { crudFor } from "../../../_services/railsApi";
 import { useAuth } from "../../../_context/AuthContext";
@@ -13,8 +14,8 @@ const CharactersPage = () => {
   const [characters, setCharacters] = useState([]);
   const [error, setError] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isCreationOpen, setIsCreationOpen] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
+  const router = useRouter();
   const { role } = useAuth();
   const charactersApi = useMemo(
     () => crudFor("characters", role),
@@ -31,7 +32,6 @@ const CharactersPage = () => {
 
   const handleAddCharacter = (newChar) => {
     setCharacters((prev) => [...prev, newChar]);
-    setIsCreationOpen(false);
   };
 
   const closeEditCharacter = () => {
@@ -48,16 +48,65 @@ const CharactersPage = () => {
     closeEditCharacter()
   };
 
-  const handleCardClick = (char) => {
-    setSelectedCharacter((prev) =>
-      prev?.id === char.id ? null : char
-    );
+  const handleCardClick = async (char) => {
+    console.log('Clicou no personagem:', char.name, char.id);
+    console.log('Dados do personagem:', char);
+    
+    try {
+      // Verificar se o personagem tem sheet e classe
+      if (!char.sheet_id || !char.main_class) {
+        console.log('Sem sheet ou classe - abrindo modal');
+        setSelectedCharacter(char);
+        return;
+      }
+      
+      const api = String(char.main_class?.api_index || '').toLowerCase();
+      const namePT = String(char.main_class?.name || '');
+      const map = {
+        barbarian: 'barbaro',
+        bard: 'bardo',
+        warlock: 'bruxo',
+        cleric: 'clerigo',
+        druid: 'druida',
+        sorcerer: 'feiticeiro',
+        fighter: 'guerreiro',
+        rogue: 'ladino',
+        wizard: 'mago',
+        monk: 'monge',
+        paladin: 'paladino',
+        ranger: 'patrulheiro',
+      };
+      let finalSlug = map[api];
+      
+      // Verificar subclasse especiais com ficha própria
+      const subName = char.main_class?.subclass?.name || '';
+      const subNorm = subName.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+      if (subNorm.includes('cavaleiro arcano')) finalSlug = 'guerreirocavaleiroarcano';
+      if (subNorm.includes('trapaceiro arcano')) finalSlug = 'ladinotrapaceiroarcano';
+      
+      // Fallback: slug do nome PT
+      if (!finalSlug) {
+        finalSlug = namePT
+          .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+          .toLowerCase().replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+      }
+      if (!finalSlug) finalSlug = 'barbaro';
+      
+      console.log('Navegando para:', `/classes/${finalSlug}?cid=${char.id}`);
+      // Abrir ficha específica na rota unificada /classes/:slug com o id do personagem
+      router.push(`/classes/${finalSlug}?cid=${char.id}`);
+    } catch (e) {
+      console.error('Falha ao abrir ficha por classe:', e);
+      // fallback: abrir modal
+      setSelectedCharacter(char);
+    }
   };
 
   return (
     <div className={styles.pageContainer}>
       <div className={styles.header}>
-        <Button size="lg" onClick={() => setIsCreationOpen(true)}>
+        <Button size="lg" onClick={() => router.push("/admin/characters/new") }>
           Criar Personagem
         </Button>
       </div>
@@ -73,16 +122,6 @@ const CharactersPage = () => {
           />
         ))}
       </div>
-
-      {isCreationOpen && (
-        <CharacterFormDialog
-          isOpen={open}
-          onClose={() => setIsCreationOpen(false)}
-          onSave={handleAddCharacter}
-          charactersApi={charactersApi}
-        />
-      )}
-
       {selectedCharacter && isEditOpen && (
         <CharacterFormDialog
           isOpen={isEditOpen}
@@ -94,11 +133,11 @@ const CharactersPage = () => {
       )}
 
       {selectedCharacter && !isEditOpen && (
-        <CharacterInfo
+        <CharacterSheet
           character={selectedCharacter}
           onClose={() => setSelectedCharacter(null)}
           setIsEditOpen={() => setIsEditOpen(true)}
-          />
+        />
       )}
     </div>
   );

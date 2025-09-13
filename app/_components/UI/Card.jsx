@@ -1,21 +1,25 @@
 import * as React from "react";
 import styles from "../../_styles/UI/Card.module.css";
 
-const Card = React.forwardRef(({ date, title, status, characters, ...props }, ref) => {
+// Props:
+// - bgVar: name of a CSS variable defined in the theme without the leading `--` (e.g., "medium", "primary", "dark").
+// - bgHoverVar: optional hover variant variable name (defaults to "medium-hover").
+// - disableHover: disables hover styles entirely.
+const Card = React.forwardRef(({ date, title, status, characters, disableHover = false, bgVar, bgHoverVar, className = '', style, ...props }, ref) => {
+  const mergedStyle = {
+    ...(style || {}),
+    ...(bgVar ? { ['--card-bg']: `var(--${bgVar})` } : {}),
+    ...(bgHoverVar ? { ['--card-bg-hover']: `var(--${bgHoverVar})` } : {}),
+  };
+
   return (
-    <div ref={ref} className={`${styles.card}`} {...props} />
-    // <div className={`${styles.card} ${styles.pixel}`}>
-    //   <div className={styles.cardDate}>{date}</div>
-    //   <div className={styles.cardTitle}>{title}</div>
-    //   <div className={`${styles.cardStatus} ${styles[status]}`}>{status}</div>
-    //   <div className={styles.cardDescription}>
-    //     <ul className={styles.characterList}>
-    //       {characters.map((char, index) => (
-    //         <li key={index}>{char}</li>
-    //       ))}
-    //     </ul>
-    //   </div>
-    // </div>
+    <div
+      ref={ref}
+      className={`${styles.card} ${className}`}
+      data-nohover={disableHover ? 'true' : undefined}
+      style={mergedStyle}
+      {...props}
+    />
   );
 });
 Card.displayName = "Card";

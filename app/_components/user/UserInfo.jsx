@@ -8,9 +8,9 @@ import {
   DialogDescription,
   DialogContent,
   DialogFooter,
-} from "./UI/Dialog";
-import Button from "./UI/Button";
-import styles from "../_styles/UserInfo.module.css";
+} from "../UI/Dialog";
+import Button from "../UI/Button";
+import styles from "../../_styles/user/UserInfo.module.css";
 
 const UserInfo = ({ user, onClose, setIsEditOpen }) => {
   return (

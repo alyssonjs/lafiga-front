@@ -34,10 +34,9 @@ const CharacterInfo = ({ character, onClose, setIsEditOpen }) => {
           <div className={styles.infoDetails}>
             <div className={styles.background}>
               <strong>Background:</strong>
-              <div
-                className={styles.backgroundText}
-                dangerouslySetInnerHTML={{ __html: character.background }}
-              />
+              <div className={styles.backgroundText}>
+                {character.background}
+              </div>
             </div>
           </div>
         </DialogContent>

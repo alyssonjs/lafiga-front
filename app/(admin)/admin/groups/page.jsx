@@ -8,7 +8,7 @@ import GroupCard from "../../../_components/group/GroupCard";
 import { crudFor } from "../../../_services/railsApi";
 import { useAuth } from "../../../_context/AuthContext";
 
-import styles from "../../../_styles/group/GroupsPage.module.css";
+import styles from "../../../_styles/groupPage/GroupsPage.module.css";
 
 const GroupsPage = () => {
   const [groups, setGroups] = useState([]);
@@ -50,7 +50,7 @@ const GroupsPage = () => {
   const removeGroup = async (id) => {
     if (!confirm("Confirma exclusão deste grupo?")) return;
     try {
-      await deleteAdminGrosup(id);
+      await groupsApi.destroy(id);
       setGroups((prev) => prev.filter((g) => g.id !== id));
       setSelected(null);
     } catch (e) {

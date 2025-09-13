@@ -9,14 +9,14 @@ import {
   DialogContent,
   DialogFooter,
 } from "../UI/Dialog";
-import Select from "./Select";
+import Select from "../UI/Select";
 import Button from "../UI/Button";
 import Input from "../UI/Input";
 import { editAdminUser, getAdminRoles } from "../../_services/railsApi";
 import { useAuth } from "../../_context/AuthContext";
 import { crudFor } from "../../_services/railsApi";
 
-import styles from "../_styles/CharacterForm.module.css";
+import styles from "../../_styles/character/CharacterForm.module.css";
 
 const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
   const isEdit = Boolean(user);
@@ -65,9 +65,10 @@ const UserFormDialog = ({ user, isOpen, onClose, onSave }) => {
       fetchRoles();
     } else {
       setName("");
-      setBackground("");
-      setGroupId("");
-      setUserId("");
+      setUsername("");
+      setEmail("");
+      setPhone("");
+      setRoleId("");
     }
     setError(null);
   }, [isOpen, user, role]);

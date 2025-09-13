@@ -24,6 +24,8 @@ const Select = ({
   value,
   onChange = () => {},
   disabled = false,
+  clearable = false,
+  size = "md",
   ...props
 }) => {
   // --- state --------------------------------------------------------------
@@ -99,18 +101,24 @@ const Select = ({
     : options;
 
   // --- render -------------------------------------------------------------
+  const hasValue = multiselect
+    ? Array.isArray(selectedOptions) && selectedOptions.length > 0
+    : !!selectedOption;
+
   return (
     <div
       className={`${styles.customSelectContainer} ${disabled ? styles.disabled : ""}`}
       ref={selectContainerRef}
+      data-size={size}
       {...props}
     >
       <div
-        className={`${styles.selectedText} ${showOptionList ? styles.active : ""}`}
+        className={`${styles.selectedText} ${!multiselect ? styles.singleLine : ""} ${showOptionList ? styles.active : ""}`}
         tabIndex={disabled ? -1 : 0}
         role="button"
         aria-disabled={disabled}
         onClick={() => !disabled && setShowOptionList((v) => !v)}
+        data-size={size}
       >
         {multiselect ? (
           selectedOptions.length === 0 ? (
@@ -137,6 +145,17 @@ const Select = ({
           selectedOption.name
         ) : (
           placeholder
+        )}
+
+        {!multiselect && clearable && hasValue && (
+          <button
+            type="button"
+            className={styles.clearBtn}
+            aria-label="Limpar seleção"
+            onClick={(e) => { e.stopPropagation(); setSelectedOption(null); onChange(null); }}
+          >
+            ×
+          </button>
         )}
       </div>
 
