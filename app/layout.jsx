@@ -1,6 +1,7 @@
 import "./globals.css";
 import Navbar from "./_components/navbar/Navbar";
 import { AuthProvider } from './_context/AuthContext';
+import { ToastProvider } from './_context/ToastContext';
 export const metadata = {
   title: "Lafiga - Quadro de Sessões",
   description: "Gerencie suas sessões de RPG com estilo pixelado!",
@@ -18,9 +19,11 @@ export default function RootLayout({ children }) {
     <html lang="pt-BR">
       <body className="pixellari">
         <AuthProvider>
-          <Navbar />
-          <main>{children}</main>
-          <div id="dialogRoot" />
+          <ToastProvider>
+            <Navbar />
+            <main>{children}</main>
+            <div id="dialogRoot" />
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

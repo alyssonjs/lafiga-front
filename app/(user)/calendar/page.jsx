@@ -42,7 +42,7 @@ export default function CalendarPage() {
   );
 
   useEffect(() => {
-    fetchDateDimensions(year, month)
+    fetchDateDimensions(year, month, role === 'admin' ? 'admin' : 'public')
       .then((data) => {
         const mapped = data.map((d) => ({
           ...d,
@@ -52,7 +52,7 @@ export default function CalendarPage() {
         setDateDims(mapped);
       })
       .catch((e) => setError(e.message));
-  }, [year, month]);
+  }, [year, month, role]);
 
   useEffect(() => {
     schedulesApi
@@ -104,13 +104,8 @@ export default function CalendarPage() {
 
   const changeDateAvailability = async (dateDimensionId, available) => {
     try {
-      const {
-        date_dimension: updatedDim,
-        schedules: refreshedSchedules,
-      } = await dateDimensionsApi.update(dateDimensionId, { available });
-  
-        setSchedules(refreshedSchedules);
-  
+      const { date_dimension: updatedDim } = await dateDimensionsApi.update(dateDimensionId, { available });
+
       setDateDims((prev) =>
         prev.map((dd) =>
           dd.id === updatedDim.id ? { ...dd, available: updatedDim.available } : dd

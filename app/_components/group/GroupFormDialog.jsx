@@ -15,7 +15,7 @@ import TextArea from "../UI/TextArea";
 import { crudFor } from "../../_services/railsApi";
 import { useAuth } from "../../_context/AuthContext";
 
-import styles from "../_styles/GroupFormDialog.module.css";
+import styles from "../../_styles/group/GroupFormDialog.module.css";
 
 const seasons = [
   { id: "verao", name: "Verão" },

@@ -20,7 +20,25 @@
 
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  min-height: 40px;
+}
+
+/* compact size */
+.customSelectContainer[data-size="sm"] .selectedText,
+.selectedText[data-size="sm"] {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  min-height: 28px;
+  font-size: 0.85rem;
+  border-width: 3px;
+}
+
+.selectedText[data-size="sm"]::after {
+  top: 12px;
 }
 
 .selectedText:focus {
@@ -119,3 +137,25 @@
   background-color: #007bff;
   color: white;
 }
+
+/* Single-line behavior for non-multiselect (prevents placeholder overflow) */
+.singleLine {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Clear button for single-select */
+.clearBtn {
+  position: absolute;
+  right: 28px; /* leave room for the caret */
+  top: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+.clearBtn:hover { color: var(--primary); }

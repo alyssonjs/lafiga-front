@@ -1,11 +1,11 @@
-import React, { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Toast from "./Toast";
 import styles from "../../../_styles/UI/ToastList.module.css";
 
 const ToastList = ({ data, position, removeToast }) => {
   const listRef = useRef(null);
 
-  const handleScrolling = React.useCallback((el) => {
+  const handleScrolling = useCallback((el) => {
     const isTopPosition = ["topLeft", "topRight"].includes(position);
     if (isTopPosition) {
       el?.scrollTo(0, el.scrollHeight);

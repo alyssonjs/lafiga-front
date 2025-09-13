@@ -4,8 +4,8 @@
   justify-content: center;
   white-space: nowrap;
   outline: none;
-  background-color: var(--default);
-  color: var(--text-primary);
+  background-color: var(--medium);
+  color: var(--text-secondary);
   border: 4px solid var(--border);
   border-radius: 0px;
   transition: background-color 0.2s ease;
@@ -24,7 +24,7 @@
 
 .button:hover {
   cursor: pointer;
-  background-color: var(--default-hover);
+  background-color: var(--medium-hover);
   transition: background-color 0.2s ease;
   box-shadow: none;
   box-shadow: 2px 2px 0 0 var(--border);
@@ -111,7 +111,7 @@
 }
 
 .button[data-variant="medium"]:hover {
-  background-color: var(--medium);
+  background-color: var(--medium-hover);
 }
 
 .button[data-variant="icon"] {

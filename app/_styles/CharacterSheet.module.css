@@ -1,0 +1,24 @@
+.sheetContainer { width: 90vw; max-width: 1200px; }
+.error { color: var(--danger); margin-bottom: 8px; }
+.grid { display: grid; grid-template-columns: 260px 1fr 1fr; gap: 16px; }
+
+.abilities { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.abilityBox { background: var(--light); border: 1px solid var(--secondary); border-radius: 8px; padding: 10px; display: grid; grid-template-columns: 1fr auto auto; align-items: center; }
+.abilityBox span { color: var(--text-secondary); }
+.abilityBox strong { font-size: 20px; }
+.abilityBox em { font-style: normal; color: var(--text-secondary); }
+
+.combat { display: grid; gap: 12px; }
+.panel { background: var(--light); border: 1px solid var(--secondary); border-radius: 8px; padding: 10px; }
+.panelTitle { font-weight: 600; margin-bottom: 6px; color: var(--text-secondary); }
+.hpRow { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.centerBig { text-align: center; font-size: 24px; font-weight: bold; }
+.scrollText { max-height: 160px; overflow: auto; background: var(--lighter); padding: 6px; border-radius: 6px; }
+
+.details { display: grid; gap: 12px; }
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge { background: var(--primary); color: var(--text-primary); padding: 4px 8px; border-radius: 12px; font-size: 12px; }
+.notesArea { height: 180px; background: var(--lighter); border-radius: 6px; }
+
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+

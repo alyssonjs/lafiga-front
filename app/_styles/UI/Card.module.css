@@ -97,17 +97,32 @@
   display: flex;
   flex-direction: column;
   border: 4px solid var(--border);
-  background-color: var(--medium);
+  background-color: var(--card-bg, var(--medium));
   color: var(--text-secondary);
   box-shadow: 4px 4px 0px var(--border);
+  overflow: hidden; /* impede conteúdo interno de sair do card */
+  max-width: 100%; /* evita exceder o grid/coluna */
 }
 
 .card:hover {
   cursor: pointer;
-  background-color: var(--medium-hover);
+  background-color: var(--card-bg-hover, var(--medium-hover));
   transition: background-color 0.2s ease;
   box-shadow: 2px 2px 0 0 var(--border);
   transform: translate(2px, 2px);
+}
+
+/* Desabilitar efeito de hover quando marcado explicitamente no componente */
+.card[data-nohover="true"]:hover {
+  background-color: var(--card-bg, var(--medium));
+  box-shadow: 4px 4px 0px var(--border);
+  transform: none;
+  cursor: default;
+}
+
+.card[data-nohover="true"]:active {
+  box-shadow: 4px 4px 0px var(--border);
+  transform: none;
 }
 
 .card:active {
@@ -135,6 +150,7 @@
 .cardContent {
   padding: 0 1rem 1rem 1rem;
   position: relative;
+  overflow: hidden; /* clip de elementos com borda/radius internos */
 }
 
 .cardFooter {

@@ -1,0 +1,170 @@
+.page {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+.sheet {
+  /* CSS variables escopadas à folha */
+  --sheet-bg: #fafafa;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --accent: #7aa2d6;
+  --accent-ink: #0f172a;
+  --line: #d1d5db;
+
+  width: 1100px;
+  background: var(--sheet-bg);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.06);
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: .5px;
+}
+
+.badge {
+  justify-self: end;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 28% 36% 36%;
+  gap: 12px;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: white;
+}
+
+.panelTitle {
+  font-weight: 700;
+  color: var(--accent-ink);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.idRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.box {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-height: 34px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.stat {
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 6px;
+  background: #fff;
+}
+
+.stat .abbr { font-weight: 800; font-size: 13px; color: var(--muted); }
+.stat .score { font-weight: 800; font-size: 22px; }
+.stat .mod { font-weight: 700; font-size: 12px; color: var(--muted); }
+
+.skills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+.pillRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.pill {
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th, .table td {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.features {
+  display: grid;
+  gap: 8px;
+}
+
+.feature {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.featureHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.lvl { font-size: 12px; color: var(--muted); font-weight: 700; }
+.featTitle { font-size: 14px; font-weight: 800; }
+.featBody { font-size: 13px; color: var(--ink); }
+
+@media print {
+  .page { padding: 0 }
+  .sheet { width: 210mm; border: 0; box-shadow: none; border-radius: 0; }
+}
