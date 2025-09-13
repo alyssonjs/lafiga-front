@@ -163,7 +163,7 @@ export default function CalendarPage() {
         onYearAndMonthChange={setYearAndMonth}
         handleNewSession={handleNewSession}
         isAdmin={role === "admin"}
-=      />
+      />
 
       {
         role && isOpen &&
