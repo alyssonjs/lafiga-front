@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "../Dialog";
+import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "../UI/Dialog";
 import styles from "../../_styles/character/CharacterForm.module.css";
 import SpellsSummary from "./SpellsSummary";
 import SubclassSummary from "./SubclassSummary";

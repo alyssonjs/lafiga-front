@@ -16,6 +16,15 @@ import Input from "../UI/Input";
 import { useAuth } from "../../_context/AuthContext";
 import { crudFor } from "../../_services/railsApi";
 import styles from "../../_styles/character/CharacterForm.module.css";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../UI/Card";
+import StepperNav from "../characterSteps/StepperNav";
+import StepConcept from "../characterSteps/StepConcept";
+import StepRace from "../characterSteps/StepRace";
+import StepClass from "../characterSteps/StepClass";
+import StepAbilities from "../characterSteps/StepAbilities";
+import StepReview from "../characterSteps/StepReview";
+
+
 
 const CharacterFormDialog = ({ 
   character,

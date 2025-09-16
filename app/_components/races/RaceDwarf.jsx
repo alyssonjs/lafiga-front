@@ -1,7 +1,7 @@
 "use client";
 
 import Select from "../UI/Select";
-import styles from "../../_styles/CharacterForm.module.css";
+import styles from "../../_styles/character/CharacterForm.module.css";
 
 const TOOL_OPTIONS = [
   { id: 'Ferramentas de ferreiro', name: 'Ferramentas de ferreiro' },

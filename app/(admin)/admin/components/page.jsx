@@ -24,7 +24,7 @@ import {
   DialogTitle,
 } from "../../../_components/UI/Dialog";
 
-import Select, { SelectOption } from "../../../_components/UI/Select";
+import Select from "../../../_components/UI/Select";
 
 const ComponentsPage = () => {
   const [isOpen, setIsOpen] = useState(false);

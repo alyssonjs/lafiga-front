@@ -1,16 +1,9 @@
 @import "flatpickr/dist/flatpickr.min.css";
-
-@font-face {
-  font-family: "Pixellari";
-  src: url("/fonts/pixellari/Pixellari.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap; /* evita atraso de renderização */
-}
+@import url('https://fonts.googleapis.com/css2?family=New+Rocker&display=swap');
 
 :root {
   /* Paleta Principal */
-  --font-pixel: "Pixellari", sans-serif;
+  --font-new-rocker: "New Rocker", system-ui;
   --default: #ffffff;
   --default-hover: #f0f0f0;
   --primary: #a21d21; /* Vermelho intenso - elementos principais */
@@ -48,7 +41,7 @@ body {
   padding: 0;
   background-color: var(--background);
   color: var(--text-primary);
-  font-family: var(--font-pixel);   /* ← AQUI */
+  font-family: var(--font-new-rocker);   /* ← AQUI */
   font-size: 16px;
   text-shadow: rgba(0,0,0,.01) 0 0 1px;
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "../../../../_context/AuthContext";
-import { crudFor } from "../../../../_services/railsApi";
-import styles from "../../../../_styles/character/CharacterForm.module.css";
+import { useAuth } from "../../../_context/AuthContext";
+import { crudFor } from "../../../_services/railsApi";
+import styles from "../../../_styles/character/CharacterForm.module.css";
 import { useRouter } from "next/navigation";
 
 function FieldRow({ label, children }) {

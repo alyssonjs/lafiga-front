@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import PlayerCharacterFormDialog from "../../../_components/PlayerCharacterFormDialog";
+import PlayerCharacterFormDialog from "../../../_components/character/PlayerCharacterFormDialog";
 
 export default function NewPlayerCharacterPage() {
   const router = useRouter();

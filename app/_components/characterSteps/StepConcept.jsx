@@ -1,7 +1,7 @@
 "use client";
 
 import Input from "../UI/Input";
-import TextArea from "../TextArea";
+import TextArea from "../UI/TextArea";
 import Select from "../UI/Select";
 import styles from "../../_styles/character/CharacterForm.module.css";
 

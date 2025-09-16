@@ -26,7 +26,7 @@ import StepEquipment from "../characterSteps/StepEquipment";
 import StepTabs from "../characterSteps/StepTabs";
 import ASISummaryPanel from "../classSteps/ASISummaryPanel";
 import StepBackground from "../characterSteps/StepBackground";
-import StepAlignment from "../characterSteps/StepAlignment";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../UI/Card";
 
 const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline = false }) => {
   const isEdit = Boolean(character);

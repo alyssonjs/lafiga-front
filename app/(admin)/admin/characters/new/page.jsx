@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import CharacterFormDialog from "../../../_components/CharacterFormDialog";
+import CharacterFormDialog from "../../../_components/character/CharacterFormDialog";
 import { useAuth } from "../../../_context/AuthContext";
 import { crudFor } from "../../../_services/railsApi";
 

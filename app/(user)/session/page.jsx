@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
-import Button from "../../_components/Button";
+import Button from "../../_components/UI/Button";
 import ScheduleCard from "../../_components/schedule/ScheduleCard";
 import { useAuth } from "../../_context/AuthContext";
 import { crudFor } from "../../_services/railsApi";

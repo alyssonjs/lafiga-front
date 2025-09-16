@@ -1,6 +1,7 @@
 .card {
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 350px;
 }
 
 .card:hover {
@@ -11,8 +12,9 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1.5rem;
   align-items: flex-start;
+  padding: 16px;
 }
 
 .title {

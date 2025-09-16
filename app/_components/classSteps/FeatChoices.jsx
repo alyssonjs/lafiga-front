@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Select from "../UI/Select";
-import Badge from "../Badge";
+import Badge from "../UI/Badge";
 import styles from "../../_styles/character/CharacterForm.module.css";
 import { apiClient } from "../../_lib/api/client";
 

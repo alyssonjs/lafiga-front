@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Select from "../UI/Select";
 import Input from "../UI/Input";
-import Button from "../Button";
+import Button from "../UI/Button";
 import ClassLevelPlanner from "./ClassLevelPlanner";
 import styles from "../../_styles/character/CharacterForm.module.css";
 

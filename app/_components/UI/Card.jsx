@@ -39,8 +39,8 @@ const CardDescription = React.forwardRef(({ ...props }, ref) => (
 ));
 CardDescription.displayName = "CardDescription";
 
-const CardContent = React.forwardRef(({ ...props }, ref) => (
-  <div ref={ref} className={styles.cardContent} {...props} />
+const CardContent = React.forwardRef(({ className = '', ...props }, ref) => (
+  <div ref={ref} className={`${styles.cardContent} ${className}`} {...props} />
 ));
 CardContent.displayName = "CardContent";
 

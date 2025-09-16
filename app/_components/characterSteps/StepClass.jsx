@@ -2,7 +2,7 @@
 
 import Select from "../UI/Select";
 import Input from "../UI/Input";
-import { DialogDescription } from "../Dialog";
+import { DialogDescription } from "../UI/Dialog";
 import styles from "../../_styles/character/CharacterForm.module.css";
 
 const StepClass = ({

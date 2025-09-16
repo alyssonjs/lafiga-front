@@ -1,6 +1,6 @@
 "use client";
 
-import { DialogDescription } from "../Dialog";
+import { DialogDescription } from "../UI/Dialog";
 import styles from "../../_styles/character/CharacterForm.module.css";
 
 const StepReview = ({

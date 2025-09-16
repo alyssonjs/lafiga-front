@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Card, { CardContent } from "../UI/Card";
+import { Card, CardContent } from "../UI/Card";
 import styles from "../../_styles/character/CharacterCard.module.css";
 
 const CharacterCard = ({ character, onClick }) => {

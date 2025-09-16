@@ -1,5 +1,5 @@
 import React from "react";
-import Card, { CardContent } from "../UI/Card";
+import { Card, CardContent } from "../UI/Card";
 import Badge from "../UI/Badge";
 import dayjs from "dayjs";
 import cardStyles from "../../_styles/schedule/ScheduleCard.module.css";
@@ -26,18 +26,18 @@ export default function ScheduleCard({ schedule, onClick = () => {} }) {
 
   return (
     <Card
-      onClick={() => onClick(schedule)} styles={cardStyles.card}
+      onClick={() => onClick(schedule)} className={cardStyles.card}
     >
-      <CardContent styles={cardStyles.content}>
-        <h4 styles={cardStyles.title}>{title}</h4>
+      <CardContent className={cardStyles.content}>
+        <h4 className={cardStyles.title}>{title}</h4>
 
-        <p styles={cardStyles.date}>{formattedDate}</p>
+        <p className={cardStyles.date}>{formattedDate}</p>
 
-        <Badge variant={statusColor} styles={cardStyles.badge}>
+        <Badge variant={statusColor} className={cardStyles.badge}>
           {statusName}
         </Badge>
 
-        {group && <p styles={cardStyles.group}>{group.name}</p>}
+        {group && <p className={cardStyles.group}>{group.name}</p>}
       </CardContent>
     </Card>
   );
