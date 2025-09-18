@@ -25,6 +25,7 @@ import {
 } from "../../../_components/UI/Dialog";
 
 import Select from "../../../_components/UI/Select";
+import Divider from "../../../_components/UI/Divider";
 
 const ComponentsPage = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -132,19 +133,25 @@ const ComponentsPage = () => {
       </div>
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <Divider color="yellow" />   
+        <Divider color="red" /> 
+        <Divider />                   
+      </div>
+
+      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
         <Select
           placeholder="MultipleSelect"
           options={options}
           multiselect
         />
       </div>
-
+      
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Select placeholder="Select" options={options} />
+        <DatePicker />
       </div>
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <DatePicker />
+        <Select placeholder="Select" options={options} />
       </div>
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
