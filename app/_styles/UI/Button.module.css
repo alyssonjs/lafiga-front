@@ -4,37 +4,30 @@
   justify-content: center;
   white-space: nowrap;
   outline: none;
-  background-color: var(--medium);
-  color: var(--text-secondary);
-  border: 4px solid var(--border);
   border-radius: 0px;
-  transition: background-color 0.2s ease;
   height: 2.5rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
+  padding: 0.5rem 1rem;
   font-family: inherit;
   font-size: inherit;
-  /* box-shadow: 4px 4px 0px var(--border); */
-
-  transition: 100ms ease;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  
+  /* Transições otimizadas */
+  transition: all 100ms ease;
   box-shadow: 4px 4px 0 0 var(--border);
+  transform: translate(0, 0);
 }
 
 .button:hover {
-  cursor: pointer;
-  background-color: var(--medium-hover);
-  transition: background-color 0.2s ease;
-  box-shadow: none;
+  background-color: var(--foreground);
   box-shadow: 2px 2px 0 0 var(--border);
   transform: translate(2px, 2px);
 }
 
 .button:active {
-  transition: 50ms ease;
-  box-shadow:  0 0 0 0 var(--border);
+  box-shadow: 0 0 0 0 var(--border);
   transform: translate(4px, 4px);
+  transition-duration: 50ms;
 }
 
 .button:focus-visible {
@@ -52,66 +45,107 @@
   box-shadow: none;
 }
 
+/* Primary - Vermelho (Default 1) - Para voltar/desfazer */
 .button[data-variant="primary"] {
   background-color: var(--primary);
   color: var(--text-secondary);
-  transition: background-color 0.2s ease;
 }
 
 .button[data-variant="primary"]:hover {
   background-color: var(--primary-hover);
 }
 
+.button[data-variant="primary"]:active {
+  background-color: var(--primary-active);
+  border-color: var(--primary-active);
+}
+
+
+/* Secondary - Amarelo (Default 2) - Para confirmar ações gerais */
 .button[data-variant="secondary"] {
-  background-color: var(--secondary);
-  color: var(--text-secondary);
-  transition: background-color 0.2s ease;
+  background-color: var(--highlight);
+  color: var(--text-primary);
 }
 
 .button[data-variant="secondary"]:hover {
-  background-color: var(--secondary-hover);
+  background-color: var(--highlight-hover);
 }
 
+.button[data-variant="secondary"]:active {
+  background-color: var(--highlight-active);
+  border-color: var(--highlight-active);
+}
+
+/* Accent - Laranja (Default 3) - Para confirmar em cards/pop-ups */
 .button[data-variant="accent"] {
   background-color: var(--accent);
   color: var(--text-primary);
-  transition: background-color 0.2s ease;
 }
 
 .button[data-variant="accent"]:hover {
   background-color: var(--accent-hover);
 }
 
+.button[data-variant="accent"]:active {
+  background-color: var(--accent-active); /* Marrom escuro para clicked */
+  border-color: var(--accent-active);
+}
+
+/* Highlight - Vermelho escuro (Variante 01) - Para voltar/desfazer em cards */
 .button[data-variant="highlight"] {
-  background-color: var(--highlight);
-  color: var(--text-primary);
-  transition: background-color 0.2s ease;
+  background-color: var(--secondary);
+  color: var(--accent); /* Dourado claro */
+  border: 2px solid var(--accent);
 }
 
 .button[data-variant="highlight"]:hover {
-  background-color: var(--highlight-hover);
+  background-color: var(--secondary-hover);
+  border-color: 2px var(--accent-hover); /* Bordas douradas no hover */
+  color: var(--accent-hover);
 }
 
-.button[data-variant="outline"] {
-  border: 4px solid var(--border);
-  background-color: var(--background);
-  color: var(--text-primary);
-  transition: background-color 0.2s ease, color 0.2s ease;
+.button[data-variant="highlight"]:active {
+  background-color: var(--secondary-active); /* Vermelho mais escuro para clicked */
+  color: var(--accent-active); /* Dourado escuro para clicked */
+  border-color: var(--secondary-active);
 }
 
-.button[data-variant="outline"]:hover {
-  cursor: pointer;
-  /* background-color: var(--foreground); */
-}
-
+/* Medium - Vermelho escuro (Variante 02) - Para voltar/desfazer em cards */
 .button[data-variant="medium"] {
   background-color: var(--medium);
-  color: var(--foreground);
-  transition: background-color 0.2s ease;
+  color: var(--primary); /* Vermelho médio */
+  border: 2px solid var(--primary);
 }
 
 .button[data-variant="medium"]:hover {
   background-color: var(--medium-hover);
+  border-color: 2px var(--primary-hover); /* Bordas vermelhas no hover */
+  color: var(--primary-hover);
+}
+
+.button[data-variant="medium"]:active {
+  background-color: var(--medium-active); /* Quase preto para clicked */
+  color: var(--primary-active); /* Vermelho escuro para clicked */
+  border-color: var(--medium-active);
+}
+
+/* Outline - Preto (Variante 03) - Para ajuda/explicação */
+.button[data-variant="helper"] {
+  background-color: var(--dark);
+  color: var(--highlight); /* Amarelo brilhante */
+  border: 1px solid var(--highlight); /* Bordas amarelas */
+}
+
+.button[data-variant="helper"]:hover {
+  background-color: var(--dark);
+  border-color: 1px var(--highlight-hover);
+  color: var(--highlight-hover);
+}
+
+.button[data-variant="helper"]:active {
+  background-color: var(--dark);
+  color: var(--highlight-active); /* Amarelo dessaturado para clicked */
+  border-color: var(--dark);
 }
 
 .button[data-variant="icon"] {

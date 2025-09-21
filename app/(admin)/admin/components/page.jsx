@@ -82,14 +82,14 @@ const ComponentsPage = () => {
         <Button size="icon">{`i`}</Button>
       </div>
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Button variant="primary">{`variant="primary"`}</Button>
-        <Button variant="secondary">{`variant="secondary"`}</Button>
-        <Button variant="accent">{`variant="accent"`}</Button>
+        <Button variant="primary" size="md">Voltar</Button>
+        <Button variant="secondary" size="md">Ver Mais</Button>
+        <Button variant="accent" size="md">Confirmar</Button>
       </div>
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Button variant="highlight">{`variant="highlight"`}</Button>
-        <Button variant="medium">{`variant="medium"`}</Button>
-        <Button variant="outline">{`variant="outline"`}</Button>
+        <Button variant="highlight" size="sm">Cancelar</Button>
+        <Button variant="medium" size="sm">Desfazer</Button>
+        <Button variant="helper" size="md">Ajuda</Button>
       </div>
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
         <Input type="email" placeholder="Default" />
@@ -109,8 +109,8 @@ const ComponentsPage = () => {
             </div>
           </CardContent>
           <CardFooter>
-            <Button variant="secondary">Cancel</Button>
-            <Button variant="highlight">Ok</Button>
+            <Button variant="highlight">Cancel</Button>
+            <Button variant="accent">Ok</Button>
           </CardFooter>
         </Card>
 
@@ -118,7 +118,7 @@ const ComponentsPage = () => {
           <CardHeader>
             <CardTitle>Title</CardTitle>
             <CardDescription>Description</CardDescription>
-            <Badge variant="highlight">Status</Badge>
+            <Badge variant="secondary">Status</Badge>
           </CardHeader>
           <CardContent>
             <ul>
@@ -149,9 +149,9 @@ const ComponentsPage = () => {
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
         <Badge>Badge</Badge>
-        <Badge variant="highlight">Highlight</Badge>
+        <Badge variant="secondary">Secondary</Badge>
         <Badge variant="outline">Outline</Badge>
-        <Badge variant="medium">Medium</Badge>
+        <Badge variant="accent">Accent</Badge>
       </div>      
 
       <div style={{ display: "flex", gap: "1em", padding: "20px", justifyContent: "space-between"}}>
@@ -183,11 +183,11 @@ const ComponentsPage = () => {
             trigger={
               <>
                 {openDropdown ? (
-                  <Button variant="highlight" status="pressed" onClick={() => setOpenDropdown(false)}>
+                  <Button variant="secondary" status="pressed" onClick={() => setOpenDropdown(false)}>
                     Dropdown
                   </Button>
                 ) : (
-                  <Button variant="primary" onClick={() => setOpenDropdown(true)}>
+                  <Button variant="secondary" onClick={() => setOpenDropdown(true)}>
                     Dropdown
                   </Button>
                 )}
@@ -231,7 +231,7 @@ const ComponentsPage = () => {
                   </div>
                 </DialogContent>
                 <DialogFooter>
-                  <Button variant="primary" onClick={() => setIsOpen(false)}>
+                  <Button variant="accent" onClick={() => setIsOpen(false)}>
                     Close Dialog Modal
                   </Button>
                 </DialogFooter>
