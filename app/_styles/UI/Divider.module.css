@@ -1,0 +1,27 @@
+.hrWrap {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+
+.divider {
+  border: none;
+  height: 2px;
+  background: var(--divider-color, #333);
+  margin-left: 10px;
+  width: calc(100% - 10px);
+  display: block;
+}
+
+.hrWrap::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: var(--divider-color, #333);
+  pointer-events: none;
+  z-index: 2;
+}
