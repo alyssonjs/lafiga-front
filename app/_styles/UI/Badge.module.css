@@ -20,7 +20,7 @@
 .badge[data-variant='highlight'] {
   border: 4px solid var(--border); 
   background-color: var(--highlight);
-  color: var(--text-primary); 
+  color: var(--text-secondary); 
 }
 
 .badge[data-variant='highlight']:hover {

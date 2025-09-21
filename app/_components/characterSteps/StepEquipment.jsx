@@ -10,6 +10,7 @@ import { apiClient } from "../../_lib/api/client";
 export default function StepEquipment({
   allowedArmorCats = [],
   allowedWeaponCats = [],
+  allowShortsword = false,
   picks = [],
   setPicks = () => {},
   onBack = () => {},
@@ -32,6 +33,7 @@ export default function StepEquipment({
     const set = new Set();
     allowedArmorCats.forEach((c) => { if (c === 'light' || c === 'medium' || c === 'heavy' || c === 'shields') set.add(c); });
     allowedWeaponCats.forEach((w) => { if (w === 'simple' || w === 'martial') set.add(w); });
+    if (allowShortsword && !allowedWeaponCats.includes('martial')) set.add('martial');
     set.add('gear'); set.add('packs');
     return Array.from(set);
   }, [allowedArmorCats, allowedWeaponCats]);
@@ -72,12 +74,23 @@ export default function StepEquipment({
     const items = [];
     if (armorPick) {
       const found = (cats.light||[]).concat(cats.medium||[], cats.heavy||[]).find(x => x.index === armorPick);
-      if (found) items.push({ item_index: found.index, item_name: found.name, category: 'armor', equipped: true, slot: 'armor', quantity: 1, source: 'class' });
+      if (found) {
+        const det = itemDetails[found.index] || {};
+        const acInfo = det.armor_class || {};
+        const props = {
+          base: (acInfo.base != null) ? Number(acInfo.base) : null,
+          dex_bonus: !!acInfo.dex_bonus,
+          max_bonus: (acInfo.max_bonus != null) ? Number(acInfo.max_bonus) : null,
+          stealth_disadvantage: !!det.stealth_disadvantage,
+          str_minimum: det.str_minimum || det.strength || null,
+        };
+        items.push({ item_index: found.index, item_name: found.name, category: 'armor', equipped: true, slot: 'armor', quantity: 1, source: 'class', props });
+      }
     }
     if (shieldPick) {
       const found = (cats.shields || [])[0];
       // allow choosing first shield (there's typically one)
-      if (found) items.push({ item_index: found.index, item_name: found.name, category: 'shield', equipped: true, slot: 'shield', quantity: 1, source: 'class' });
+      if (found) items.push({ item_index: found.index, item_name: found.name, category: 'shield', equipped: true, slot: 'shield', quantity: 1, source: 'class', props: { ac_bonus: 2 } });
     }
     if (weaponPick) {
       const found = (cats.simple||[]).concat(cats.martial||[]).find(x => x.index === weaponPick);
@@ -124,7 +137,7 @@ export default function StepEquipment({
   useEffect(() => {
     const items = mergePicks();
     setPicks(items);
-  }, [armorPick, shieldPick, weaponPick, JSON.stringify(extras)]);
+  }, [armorPick, shieldPick, weaponPick, JSON.stringify(extras), JSON.stringify(itemDetails)]);
 
   const canWearArmor = allowedArmorCats.some(c => ['light','medium','heavy'].includes(c));
   const canUseShield = allowedArmorCats.includes('shields');
@@ -287,14 +300,14 @@ export default function StepEquipment({
                 placeholder="Selecione uma arma"
                 options={[
                   ...(canUseSimple ? (cats.simple||[]) : []),
-                  ...(canUseMartial ? (cats.martial||[]) : []),
+                  ...((canUseMartial ? (cats.martial||[]) : (allowShortsword ? (cats.martial||[]).filter(x => /shortsword|espada curta/i.test(String(x.name||''))) : []))),
                 ].map((x)=>({ id: x.index, name: x.name }))}
                 value={weaponPick}
                 onChange={setWeaponPick}
               />
               {weaponPick && (
                 <div className={styles.selectedItem}>
-                  ✓ {[...(canUseSimple ? (cats.simple||[]) : []), ...(canUseMartial ? (cats.martial||[]) : [])].find(x => x.index === weaponPick)?.name}
+                  ✓ {[...(canUseSimple ? (cats.simple||[]) : []), ...((canUseMartial ? (cats.martial||[]) : (allowShortsword ? (cats.martial||[]).filter(x => /shortsword|espada curta/i.test(String(x.name||''))) : [])))].find(x => x.index === weaponPick)?.name}
                 </div>
               )}
               {weaponPick && <WeaponDetailsBox />}

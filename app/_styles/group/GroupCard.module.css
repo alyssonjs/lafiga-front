@@ -19,7 +19,7 @@
 .name {
   margin: 0;
   font-size: inherit;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .info {

@@ -74,7 +74,7 @@
 
 .button[data-variant="accent"] {
   background-color: var(--accent);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   transition: background-color 0.2s ease;
 }
 
@@ -84,7 +84,7 @@
 
 .button[data-variant="highlight"] {
   background-color: var(--highlight);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   transition: background-color 0.2s ease;
 }
 
@@ -95,7 +95,7 @@
 .button[data-variant="outline"] {
   border: 4px solid var(--border);
   background-color: var(--background);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 

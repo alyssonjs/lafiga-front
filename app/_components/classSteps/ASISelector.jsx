@@ -15,10 +15,17 @@ export default function ASISelector({
   cantripOptions = [],
   spellOptions = [],
   klasses = [],
+  dictionaries = {},
   currentFeatId = null,
   excludeIds = [],
   showModeToggle = true,
-  defaultMode = 'attributes'
+  defaultMode = 'attributes',
+  attributesLabel = 'Selecione até 2 atributos (duplique para +2 no mesmo):',
+  // Contexto para checar pré-requisitos de feats
+  abilityScores = { str:10, dex:10, con:10, int:10, wis:10, cha:10 },
+  hasSpellcasting = false,
+  armorCatsFromClass = [], // ['light','medium','heavy','shields']
+  weaponCatsFromClass = [] // ['simple','martial']
 }) {
   console.log(typeof asiChoice === 'function')
   const asiChoiceObj = typeof asiChoice === 'function' ? asiChoice() : asiChoice;
@@ -75,6 +82,7 @@ export default function ASISelector({
         <AbilityIncreaseSelector
           value={asiChoiceObj?.attributes || []}
           onChange={(ids)=> setAsiChoice(prev => ({ ...(typeof prev === 'function' ? prev() : prev), mode:'attributes', attributes: ids }))}
+          label={attributesLabel}
         />
       )}
 
@@ -87,7 +95,12 @@ export default function ASISelector({
           cantripOptions={cantripOptions || []}
           spellOptions={spellOptions || []}
           klasses={klasses || []}
+          dictionaries={dictionaries || {}}
           excludeIds={excludeIds || []}
+          abilityScores={abilityScores}
+          hasSpellcasting={hasSpellcasting}
+          armorCatsFromClass={armorCatsFromClass}
+          weaponCatsFromClass={weaponCatsFromClass}
         />
       )}
     </div>

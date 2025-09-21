@@ -12,7 +12,7 @@ const ABILITY_OPTIONS = [
   { id: 'CHA', name: 'CAR' },
 ];
 
-export default function AbilityIncreaseSelector({ value = [], onChange }) {
+export default function AbilityIncreaseSelector({ value = [], onChange, label = 'Selecione até 2 atributos (duplique para +2 no mesmo):' }) {
   const valueObjs = (value || []).map((id) => ABILITY_OPTIONS.find((o) => o.id === id) || { id, name: String(id) });
   const handle = (val) => {
     console.log(val, value)
@@ -21,7 +21,7 @@ export default function AbilityIncreaseSelector({ value = [], onChange }) {
   };
   return (
     <div>
-      <label className={styles.label}>Selecione até 2 atributos (duplique para +2 no mesmo):</label>
+      <label className={styles.label}>{label}</label>
       <Select multiselect placeholder="Até 2 atributos" options={ABILITY_OPTIONS} value={valueObjs} onChange={handle} />
     </div>
   );

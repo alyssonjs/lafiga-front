@@ -12,6 +12,11 @@
   color: var(--default);
   max-width: 100%;
   background: var(--medium);
+  /* Ensure long text wraps within the popover */
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 .popover::after {
   content: "";
@@ -20,22 +25,22 @@
   border-style: solid;
 }
 .bottom::after {
-  top: -8px; left: 150px;
+  top: -8px; left: var(--arrow-x, 50%); transform: translateX(-50%);
   border-width: 0 8px 8px 8px;
   border-color: transparent transparent var(--secondary) transparent;
 }
 .top::after {
-  bottom: -8px; left: 20px;
+  bottom: -8px; left: var(--arrow-x, 50%); transform: translateX(-50%);
   border-width: 8px 8px 0 8px;
   border-color: var(--secondary) transparent transparent transparent;
 }
 .left::after {
-  right: -8px; top: 20px;
+  right: -8px; top: var(--arrow-y, 50%); transform: translateY(-50%);
   border-width: 8px 0 8px 8px;
   border-color: transparent transparent transparent var(--secondary);
 }
 .right::after {
-  left: -8px; top: 20px;
+  left: -8px; top: var(--arrow-y, 50%); transform: translateY(-50%);
   border-width: 8px 8px 8px 0;
   border-color: transparent var(--secondary) transparent transparent;
 }

@@ -1,6 +1,6 @@
 .pageContainer {
   padding: 20px;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .header {
@@ -35,5 +35,5 @@
 .inlineSection h2 {
   margin-top: 0;
   font-size: 20px;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }

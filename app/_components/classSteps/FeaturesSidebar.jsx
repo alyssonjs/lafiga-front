@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "../Dialog";
+import { useEffect, useMemo, useState } from "react";
+import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "../UI/Dialog";
 import styles from "../../_styles/character/CharacterForm.module.css";
 import SpellsSummary from "./SpellsSummary";
+import { useSubclasses } from "../../_hooks/useSubclasses";
 import SubclassSummary from "./SubclassSummary";
 import FeaturesByLevel from "./FeaturesByLevel";
+import { apiClient } from "../../_lib/api/client";
 
 // Independent sidebar showing per-level features and spell summary
 const FeaturesSidebar = ({
@@ -21,14 +23,35 @@ const FeaturesSidebar = ({
   raceRuleId = null,
   subRuleId = null,
   spellDict = {},
+  classSubclassId = null,
 }) => {
   const [modal, setModal] = useState({ open: false, title: '', body: '' });
+  const [apSubclass, setApSubclass] = useState([]);
   const openInfo = (title, body) => setModal({ open: true, title, body: body || 'Descrição indisponível.' });
   const closeInfo = () => setModal({ open: false, title: '', body: '' });
+  const toTitle = (s) => {
+    try {
+      const str = String(s || '').trim();
+      if (!str) return '';
+      if (str.includes(' ')) return str; // already a display name
+      // slug → Title Case with spaces
+      return str.split('-').map(w => w ? (w[0].toUpperCase() + w.slice(1)) : w).join(' ');
+    } catch(_) { return String(s||''); }
+  };
+  const toArray = (list) => {
+    if (Array.isArray(list)) return list;
+    if (list == null) return [];
+    const s = String(list);
+    if (s.includes(',')) return s.split(',').map(x => x.trim()).filter(Boolean);
+    return [s];
+  };
   const view = useMemo(() => {
     const chooseSubclassLevel = Number(rule?.subclass?.choose_level || 0);
     const subclassOptions = Object.values(rule?.subclass?.options || {}).map(o=>({ id:o.id, name:o.name, grants:o.grants }));
     const chosenSubclassId = (() => {
+      // Prefer valor controlado (seleção atual do SubclassStepper)
+      if (classSubclassId) return classSubclassId;
+      // Fallback: varrer escolhas persistidas por nível
       for (let i = 1; i <= Math.max(1, Number(maxLevel) || 1); i++) {
         const p = picksByLevel[i] || {};
         if (p.subclass_id) return p.subclass_id;
@@ -164,8 +187,111 @@ const FeaturesSidebar = ({
       const baseTraits = (rule?.traits || []); // class rule traits (usually none)
     } catch(_) {}
 
-    return { items, allCan, knownByLevel, preparedByLevel, raceSpellsExtra, subDb, subLevels };
-  }, [rule, klassLevels, picksByLevel, maxLevel, raceCantripsExtra, raceSpellsExtra, subKlasses, selectedKlassId, traitDict, raceRuleId, subRuleId]);
+    return { items, allCan, knownByLevel, preparedByLevel, raceSpellsExtra, subDb, subLevels, chosenSubclassId };
+  }, [rule, klassLevels, picksByLevel, maxLevel, raceCantripsExtra, raceSpellsExtra, subKlasses, selectedKlassId, traitDict, raceRuleId, subRuleId, classSubclassId]);
+
+  // Carregar subclasses da API (mesma fonte usada no SubclassStepper) para ter always_prepared_by_terrain consolidado
+  const { subclasses: apiSubclasses } = useSubclasses(selectedKlassId, rule?.id);
+
+  // Derivar magias sempre preparadas da subclasse a partir da API (preferível) e fallback para levels_json
+  useEffect(() => {
+    const arraysEqual = (a, b) => {
+      if (!Array.isArray(a) || !Array.isArray(b)) return false;
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) { if (a[i] !== b[i]) return false; }
+      return true;
+    };
+    try {
+      const upto = Number(maxLevel) || 1;
+      const chosenSubclassId = view.chosenSubclassId;
+      let next = [];
+      // 1) Prefer API map (ClassRules.available_subclasses)
+      try {
+        if (chosenSubclassId && Array.isArray(apiSubclasses)) {
+          const hit = apiSubclasses.find(s => String(s.id) === String(chosenSubclassId));
+          if (hit) {
+            // descobrir terreno
+            const terrain = (() => {
+              const keys = Object.keys(picksByLevel || {}).map(n=>Number(n)).filter(n=>n<=upto).sort((a,b)=>a-b);
+              for (const lv of keys) {
+                const row = picksByLevel[lv] || {};
+                const t = row.terrain || row.terreno;
+                if (t) return (typeof t === 'object') ? (t.id || t.name || String(t)) : String(t);
+              }
+              return null;
+            })();
+            const names = [];
+            const collect = (map={}) => {
+              Object.keys(map).map(n=>Number(n)).sort((a,b)=>a-b).forEach(k => {
+                if (k <= upto) toArray(map[String(k)]).forEach(nm => names.push(toTitle(nm)));
+              });
+            };
+            if (terrain && hit.always_prepared_by_terrain && hit.always_prepared_by_terrain[terrain]) {
+              collect(hit.always_prepared_by_terrain[terrain]);
+            } else if (hit.always_prepared) {
+              collect(hit.always_prepared);
+            }
+            if (names.length) { next = Array.from(new Set(names)); }
+          }
+        }
+      } catch(_) {}
+
+      // 2) Fallback: usar levels_json
+      if (next.length === 0) {
+        const subLevels = Array.isArray(view.subLevels) ? view.subLevels : [];
+        if (subLevels.length) {
+          // Descobrir terreno escolhido, se houver
+          const terrain = (() => {
+            const keys = Object.keys(picksByLevel || {}).map(n=>Number(n)).filter(n=>n<=upto).sort((a,b)=>a-b);
+            for (const lv of keys) {
+              const row = picksByLevel[lv] || {};
+              const t = row.terrain || row.terreno;
+              if (t) return (typeof t === 'object') ? (t.id || t.name || String(t)) : String(t);
+            }
+            return null;
+          })();
+          const names = [];
+          subLevels
+            .filter(r => Number(r.level) > 0 && Number(r.level) <= upto)
+            .forEach((r) => {
+              // grants podem estar no nível ou dentro de cada feature
+              const buckets = [];
+              if (r && r.grants) buckets.push(r);
+              const feats = Array.isArray(r.features) ? r.features : [];
+              feats.forEach((f) => { if (f && f.grants) buckets.push(f); });
+              buckets.forEach((node) => {
+                const grants = node.grants || {};
+                const spells = grants.spells || {};
+                // 1) sempre preparadas padrão
+                const ap = spells.always_prepared || {};
+                Object.keys(ap || {})
+                  .map(n => Number(n))
+                  .sort((a,b)=>a-b)
+                  .forEach(k => {
+                    if (k <= upto) { toArray(ap[String(k)]).forEach(nm => names.push(toTitle(nm))); }
+                  });
+                // 2) por terreno
+                const terr = spells.always_prepared_by_terrain || {};
+                if (terrain && terr[terrain]) {
+                  const map = terr[terrain] || {};
+                  Object.keys(map)
+                    .map(n => Number(n))
+                    .sort((a,b)=>a-b)
+                    .forEach(k => {
+                      if (k <= upto) { toArray(map[String(k)]).forEach(nm => names.push(toTitle(nm))); }
+                    });
+                }
+              });
+            });
+          next = Array.from(new Set(names.filter(Boolean)));
+        }
+      }
+      // Commit only if changed (avoid render loops)
+      setApSubclass(prev => (arraysEqual(prev, next) ? prev : next));
+    } catch (_) {
+      setApSubclass(prev => (prev.length ? [] : prev));
+    }
+  }, [apiSubclasses, view.chosenSubclassId, view?.subDb?.levels_json, picksByLevel, maxLevel]);
 
   return (
     <div className={styles.featureSidebar}>
@@ -188,6 +314,7 @@ const FeaturesSidebar = ({
         allCan={view.allCan}
         knownByLevel={view.knownByLevel}
         preparedByLevel={view.preparedByLevel}
+        autoPrepared={apSubclass}
         spellDict={spellDict}
         openInfo={openInfo}
       />

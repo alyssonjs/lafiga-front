@@ -46,7 +46,7 @@
   border-color: var(--ring);
   box-shadow: 0 0 0 2px var(--ring);
   background-color: var(--foreground);
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .disabled,
@@ -55,7 +55,7 @@
   opacity: 0.5; 
   pointer-events: none; 
   background-color: var(--secondary); 
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .selectedText.disabled::after {

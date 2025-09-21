@@ -20,13 +20,13 @@
 .textarea:focus {
   background-color: var(--foreground);
   border: 4px solid var(--border);
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .textarea:-webkit-autofill {
   background-color: var(--background);
   border: 4px solid var(--border);
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .textarea::placeholder {
@@ -34,7 +34,7 @@
 }
 
 .textarea:focus::placeholder {
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .textarea:focus-visible {

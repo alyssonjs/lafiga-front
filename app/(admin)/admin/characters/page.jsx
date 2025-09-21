@@ -82,7 +82,7 @@ const CharactersPage = () => {
       const subName = char.main_class?.subclass?.name || '';
       const subNorm = subName.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
       if (subNorm.includes('cavaleiro arcano')) finalSlug = 'guerreirocavaleiroarcano';
-      if (subNorm.includes('trapaceiro arcano')) finalSlug = 'ladinotrapaceiroarcano';
+      // Trapaceiro Arcano não é classe independente — abrir como Ladino
       
       // Fallback: slug do nome PT
       if (!finalSlug) {

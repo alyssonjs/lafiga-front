@@ -2,7 +2,7 @@
 
 import styles from "../../_styles/character/CharacterForm.module.css";
 
-export default function SpellsSummary({ allCan = [], knownByLevel = [], preparedByLevel = [], spellDict = {}, openInfo }) {
+export default function SpellsSummary({ allCan = [], knownByLevel = [], preparedByLevel = [], autoPrepared = [], spellDict = {}, openInfo }) {
   const parseLabels = (text) => {
     let nm = String(text || '');
     const labels = [];
@@ -46,6 +46,15 @@ export default function SpellsSummary({ allCan = [], knownByLevel = [], prepared
           </div>
         </div>
       ))}
+
+      {!!(autoPrepared && autoPrepared.length) && (
+        <>
+          <div className={styles.previewTitle} style={{ marginTop: 16 }}>Sempre Preparadas (Subclasse)</div>
+          <div className={styles.pillList}>
+            {(autoPrepared || []).map((nm, idx) => renderPill(nm, `ap-${idx}`))}
+          </div>
+        </>
+      )}
 
       {!!(preparedByLevel && preparedByLevel.length) && (
         <>

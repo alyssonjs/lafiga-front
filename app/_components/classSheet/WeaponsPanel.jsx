@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../UI/Card";
 import Select from "../UI/Select";
 import Badge from "../UI/Badge";
@@ -23,6 +23,9 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
   const [availableArmors, setAvailableArmors] = useState([]);
   const [availableShields, setAvailableShields] = useState([]);
   const [availableAmmunition, setAvailableAmmunition] = useState([]);
+  const [availableMagicItems, setAvailableMagicItems] = useState([]);
+  const [pagination, setPagination] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('weapons');
@@ -43,6 +46,29 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
   const profBonus = Number(summary?.prof_bonus || 0);
   const profs = (summary?.proficiencies?.weapons || []).map((w) => String(w).toLowerCase());
   const armorProfs = (summary?.proficiencies?.armor || []).map((a) => String(a).toLowerCase());
+
+  // Normalização canônica de proficiências
+  const weaponProfs = useMemo(() => {
+    const map = (s) => {
+      const t = String(s || '').toLowerCase();
+      if (t.includes('simples') || t.includes('simple')) return 'simple';
+      if (t.includes('marciais') || t.includes('martial')) return 'martial';
+      return t;
+    };
+    return new Set((summary?.proficiencies?.weapons || []).map(map));
+  }, [summary]);
+
+  const armorProfsSet = useMemo(() => {
+    const map = (s) => {
+      const t = String(s || '').toLowerCase();
+      if (t.includes('leve') || t.includes('light')) return 'light';
+      if (t.includes('média') || t.includes('media') || t.includes('medium')) return 'medium';
+      if (t.includes('pesad') || t.includes('heavy')) return 'heavy';
+      if (t.includes('escudo') || t.includes('shield')) return 'shields';
+      return t;
+    };
+    return new Set((summary?.proficiencies?.armor || []).map(map));
+  }, [summary]);
   const inventory = Array.isArray(summary?.equipment?.inventory) ? summary.equipment.inventory : [];
   const inventoryWeapons = inventory.filter((it) => String(it?.category || '').toLowerCase().includes('weapon'));
   const inventoryArmors = inventory.filter((it) => String(it?.category || '').toLowerCase().includes('armor'));
@@ -55,146 +81,103 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
     const key = String(idx || '').toLowerCase();
     if (equipDetailCacheRef.current[key]) return equipDetailCacheRef.current[key];
     const res = await apiClient.get(`/api/v1/public/equipment/${key}`);
-    const row = res.data || res;
+    const row = res || res;
     equipDetailCacheRef.current[key] = row;
     return row;
   }, []);
 
-  // Carregar equipamentos disponíveis (pré-carrega categorias com detalhes)
+  // Função otimizada para carregar equipamentos com paginação
+  const loadEquipmentByCategory = useCallback(async (category, page = 1) => {
+    try {
+      const response = await apiClient.get(`/api/v1/public/equipment_list/${category}?page=${page}`);
+      const { equipment, pagination: paginationData } = response;
+      
+      // Mapear os dados para o formato esperado
+      const mappedEquipment = equipment.map(item => {
+        // Definir categoria correta baseada no tipo de equipamento
+        let category = 'Equipment';
+        if (item.weapon_category) {
+          category = 'weapon';
+        } else if (item.armor_category === 'Shield') {
+          category = 'shield';
+        } else if (item.armor_category) {
+          category = 'armor';
+        } else if (item.gear_category?.name === 'Ammunition') {
+          category = 'ammunition';
+        }
+
+        return {
+          index: item.index,
+          name: item.name,
+          category: category,
+          weapon_category: item.weapon_category || null,
+          armor_category: item.armor_category || null,
+          damage: item.damage?.damage_dice || item.damage_dice || '1d6',
+          damage_type: item.damage?.damage_type?.name || 'slashing',
+          armor_class: item.armor_class?.base || item.armor_class || '11',
+          properties: Array.isArray(item.properties) ? item.properties.map(p => p.name || p.index || p) : [],
+          weight: item.weight || '1 lb',
+          cost: item.cost || '1 gp',
+          rarity: item.rarity,
+          requires_attunement: item.requires_attunement,
+          description: item.description
+        };
+      });
+      
+      return { equipment: mappedEquipment, pagination: paginationData };
+    } catch (error) {
+      console.error(`Erro ao carregar equipamentos da categoria ${category}:`, error);
+      return { equipment: [], pagination: {} };
+    }
+  }, []);
+
+  // Carregar equipamentos disponíveis do banco de dados local
   const loadAvailableEquipment = useCallback(async () => {
     setLoading(true);
     try {
-      // Carregar armas
-      let allWeapons = [];
-      try {
-        const weaponsResponse = await apiClient.get('/api/v1/public/equipment_categories/simple-weapons');
-        const martialWeaponsResponse = await apiClient.get('/api/v1/public/equipment_categories/martial-weapons');
-        allWeapons = [...(weaponsResponse.data?.equipment || []), ...(martialWeaponsResponse.data?.equipment || [])];
-      } catch (error) {
-        console.warn('Erro ao carregar armas da API, usando dados locais:', error);
-        // Fallback para dados locais se a API falhar
-        allWeapons = [
-          { index: 'club', name: 'Clava', category: 'Simple Melee Weapons', cost: '1 sp', weight: '2 lb', damage: '1d4', damage_type: 'bludgeoning' },
-          { index: 'dagger', name: 'Adaga', category: 'Simple Melee Weapons', cost: '2 gp', weight: '1 lb', damage: '1d4', damage_type: 'piercing' },
-          { index: 'greatclub', name: 'Grande Clava', category: 'Simple Melee Weapons', cost: '2 sp', weight: '10 lb', damage: '1d8', damage_type: 'bludgeoning' },
-          { index: 'handaxe', name: 'Machadinha', category: 'Simple Melee Weapons', cost: '5 gp', weight: '2 lb', damage: '1d6', damage_type: 'slashing' },
-          { index: 'javelin', name: 'Dardo', category: 'Simple Melee Weapons', cost: '5 sp', weight: '2 lb', damage: '1d6', damage_type: 'piercing' },
-          { index: 'light-hammer', name: 'Martelo Leve', category: 'Simple Melee Weapons', cost: '2 gp', weight: '2 lb', damage: '1d4', damage_type: 'bludgeoning' },
-          { index: 'mace', name: 'Maça', category: 'Simple Melee Weapons', cost: '5 gp', weight: '4 lb', damage: '1d6', damage_type: 'bludgeoning' },
-          { index: 'quarterstaff', name: 'Bordão', category: 'Simple Melee Weapons', cost: '2 sp', weight: '4 lb', damage: '1d6', damage_type: 'bludgeoning' },
-          { index: 'sickle', name: 'Foice', category: 'Simple Melee Weapons', cost: '1 gp', weight: '2 lb', damage: '1d4', damage_type: 'slashing' },
-          { index: 'spear', name: 'Lança', category: 'Simple Melee Weapons', cost: '1 gp', weight: '3 lb', damage: '1d6', damage_type: 'piercing' },
-          { index: 'crossbow-light', name: 'Besta Leve', category: 'Simple Ranged Weapons', cost: '25 gp', weight: '5 lb', damage: '1d8', damage_type: 'piercing' },
-          { index: 'dart', name: 'Dardo', category: 'Simple Ranged Weapons', cost: '5 cp', weight: '1/4 lb', damage: '1d4', damage_type: 'piercing' },
-          { index: 'shortbow', name: 'Arco Curto', category: 'Simple Ranged Weapons', cost: '25 gp', weight: '2 lb', damage: '1d6', damage_type: 'piercing' },
-          { index: 'sling', name: 'Funda', category: 'Simple Ranged Weapons', cost: '1 sp', weight: '—', damage: '1d4', damage_type: 'bludgeoning' }
-        ];
-      }
-      // Enriquecer com detalhes do backend
-      const weaponDetails = [];
-      for (const it of allWeapons) {
-        try {
-          const det = await fetchEquipDetail(it.index);
-          const props = Array.isArray(det.properties) ? det.properties.map(p => (p.name || p.index || p).toString()) : [];
-          weaponDetails.push({
-            index: it.index,
-            name: det.name || it.name,
-            category: det.weapon_category || det.equipment_category?.name || it.category,
-            damage: det.damage?.damage_dice || det.damage_dice || it.damage,
-            damage_type: det.damage?.damage_type?.name || it.damage_type,
-            properties: props,
-            weight: det.weight,
-          });
-        } catch (_) {
-          weaponDetails.push(it);
-        }
-      }
-      setAvailableWeapons(weaponDetails);
+      // Carregar armas (simples + marciais)
+      const [simpleWeapons, martialWeapons] = await Promise.all([
+        loadEquipmentByCategory('simple-weapons'),
+        loadEquipmentByCategory('martial-weapons')
+      ]);
+      
+      const allWeapons = [...simpleWeapons.equipment, ...martialWeapons.equipment];
+      setAvailableWeapons(allWeapons);
 
       // Carregar armaduras
-      let allArmors = [];
-      try {
-        const armorsResponse = await apiClient.get('/api/v1/public/equipment_categories/armor');
-        allArmors = armorsResponse.data?.equipment || [];
-      } catch (error) {
-        console.warn('Erro ao carregar armaduras da API, usando dados locais:', error);
-        allArmors = [
-          { index: 'padded', name: 'Armadura Acolchoada', category: 'Light Armor', cost: '5 gp', weight: '8 lb', armor_class: '11 + Dex modifier' },
-          { index: 'leather', name: 'Armadura de Couro', category: 'Light Armor', cost: '10 gp', weight: '10 lb', armor_class: '11 + Dex modifier' },
-          { index: 'studded-leather', name: 'Couro Batido', category: 'Light Armor', cost: '45 gp', weight: '13 lb', armor_class: '12 + Dex modifier' },
-          { index: 'hide', name: 'Armadura de Pele', category: 'Medium Armor', cost: '10 gp', weight: '12 lb', armor_class: '12 + Dex modifier (max 2)' },
-          { index: 'chain-shirt', name: 'Camisa de Cota de Malha', category: 'Medium Armor', cost: '50 gp', weight: '20 lb', armor_class: '13 + Dex modifier (max 2)' },
-          { index: 'scale-mail', name: 'Armadura de Escamas', category: 'Medium Armor', cost: '50 gp', weight: '45 lb', armor_class: '14 + Dex modifier (max 2)' },
-          { index: 'breastplate', name: 'Peitoral', category: 'Medium Armor', cost: '400 gp', weight: '20 lb', armor_class: '14 + Dex modifier (max 2)' },
-          { index: 'half-plate', name: 'Meia-Armadura', category: 'Medium Armor', cost: '750 gp', weight: '40 lb', armor_class: '15 + Dex modifier (max 2)' },
-          { index: 'ring-mail', name: 'Cota de Anéis', category: 'Heavy Armor', cost: '30 gp', weight: '40 lb', armor_class: '14' },
-          { index: 'chain-mail', name: 'Cota de Malha', category: 'Heavy Armor', cost: '75 gp', weight: '55 lb', armor_class: '16' },
-          { index: 'splint', name: 'Armadura de Tiras', category: 'Heavy Armor', cost: '200 gp', weight: '60 lb', armor_class: '17' },
-          { index: 'plate', name: 'Armadura Completa', category: 'Heavy Armor', cost: '1,500 gp', weight: '65 lb', armor_class: '18' }
-        ];
-      }
-      // Enriquecer armaduras
-      const armorDetails = [];
-      for (const it of allArmors) {
-        try {
-          const det = await fetchEquipDetail(it.index);
-          armorDetails.push({
-            index: it.index,
-            name: det.name || it.name,
-            category: det.armor_category || 'Armor',
-            armor_class: det.armor_class?.base || it.armor_class,
-            cost: det.cost || it.cost,
-            weight: det.weight || it.weight,
-            properties: Array.isArray(det.properties) ? det.properties.map(p => (p.name || p.index || p).toString()) : [],
-          });
-        } catch (_) { armorDetails.push(it); }
-      }
-      setAvailableArmors(armorDetails);
+      const armorsData = await loadEquipmentByCategory('armor');
+      setAvailableArmors(armorsData.equipment);
 
       // Carregar escudos
-      let allShields = [];
-      try {
-        const shieldsResponse = await apiClient.get('/api/v1/public/equipment_categories/shields');
-        allShields = shieldsResponse.data?.equipment || [];
-      } catch (error) {
-        console.warn('Erro ao carregar escudos da API, usando dados locais:', error);
-        allShields = [
-          { index: 'shield', name: 'Escudo', category: 'Shields', cost: '10 gp', weight: '6 lb', armor_class: '+2' }
-        ];
-      }
-      // Enriquecer escudos
-      const shieldDetails = [];
-      for (const it of allShields) {
-        try {
-          const det = await fetchEquipDetail(it.index);
-          shieldDetails.push({
-            index: it.index,
-            name: det.name || it.name,
-            category: 'Shield',
-            armor_class: det.armor_class?.base || it.armor_class || 2,
-            cost: det.cost || it.cost,
-            weight: det.weight || it.weight,
-            properties: Array.isArray(det.properties) ? det.properties.map(p => (p.name || p.index || p).toString()) : [],
-          });
-        } catch (_) { shieldDetails.push(it); }
-      }
-      setAvailableShields(shieldDetails);
+      const shieldsData = await loadEquipmentByCategory('shields');
+      setAvailableShields(shieldsData.equipment);
 
       // Carregar munições
-      let allAmmunition = [];
+      const ammoData = await loadEquipmentByCategory('ammunition');
+      setAvailableAmmunition(ammoData.equipment);
+
+      // Carregar itens mágicos do banco de dados local
       try {
-        const ammoResponse = await apiClient.get('/api/v1/public/equipment_categories/ammunition');
-        allAmmunition = ammoResponse.data?.equipment || [];
+        const magicItemsResponse = await apiClient.get('/api/v1/public/magic_items');
+        const magicItems = magicItemsResponse?.magic_items || [];
+        
+        const magicItemDetails = magicItems.map(item => ({
+          index: item.slug || item.id,
+          name: item.name,
+          category: item.category || 'Magic Item',
+          rarity: item.rarity || 'common',
+          requires_attunement: item.requires_attunement || false,
+          cost: item.value_gp ? `${item.value_gp} gp` : 'Varies',
+          weight: item.weight_kg ? `${item.weight_kg} kg` : 'Varies',
+          description: item.description || '',
+          properties: item.properties || {}
+        }));
+        
+        setAvailableMagicItems(magicItemDetails);
       } catch (error) {
-        console.warn('Erro ao carregar munições da API, usando dados locais:', error);
-        allAmmunition = [
-          { index: 'arrow', name: 'Flecha', category: 'Ammunition', cost: '1 gp', weight: '1 lb' },
-          { index: 'blowgun-needle', name: 'Agulha de Zarabatana', category: 'Ammunition', cost: '2 gp', weight: '1 lb' },
-          { index: 'crossbow-bolt', name: 'Virote', category: 'Ammunition', cost: '1 gp', weight: '1.5 lb' },
-          { index: 'sling-bullet', name: 'Bala de Funda', category: 'Ammunition', cost: '4 cp', weight: '1.5 lb' }
-        ];
+        console.error('Erro ao carregar itens mágicos do banco de dados:', error);
+        setAvailableMagicItems([]);
       }
-      setAvailableAmmunition(allAmmunition);
 
     } catch (error) {
       console.error('Erro ao carregar equipamentos:', error);
@@ -206,6 +189,39 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
   useEffect(() => {
     loadAvailableEquipment();
   }, [loadAvailableEquipment]);
+
+  // Função para carregar equipamentos com paginação
+  const loadEquipmentWithPagination = useCallback(async (category, page = 1) => {
+    setLoading(true);
+    try {
+      const data = await loadEquipmentByCategory(category, page);
+      setPagination(data.pagination);
+      setCurrentPage(page);
+      
+      // Atualizar o estado baseado na categoria
+      switch (category) {
+        case 'simple-weapons':
+        case 'martial-weapons':
+          setAvailableWeapons(data.equipment);
+          break;
+        case 'armor':
+          setAvailableArmors(data.equipment);
+          break;
+        case 'shields':
+          setAvailableShields(data.equipment);
+          break;
+        case 'ammunition':
+          setAvailableAmmunition(data.equipment);
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error('Erro ao carregar equipamentos com paginação:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadEquipmentByCategory]);
 
   // Garante carregar catálogos quando abrir o modal (e ao trocar de aba)
   useEffect(() => {
@@ -376,19 +392,18 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
   };
 
   const isWeaponProficient = (weapon) => {
-    const weaponCategory = weapon?.category || '';
-    const weaponName = weapon?.item_name || weapon?.name || '';
-    return profs.some((prof) =>
-      weaponCategory.toLowerCase().includes(prof) || weaponName.toLowerCase().includes(prof)
-    );
+    const cat = String(weapon?.weapon_category || weapon?.weapon_props?.category || '').toLowerCase();
+    if (cat && weaponProfs.has(cat)) return true;
+    // opcional: proficiência por arma específica (nome)
+    const nm = String(weapon?.item_name || weapon?.name || '').toLowerCase();
+    return weaponProfs.has(nm);
   };
 
   const isArmorProficient = (armorItem) => {
-    const armorCategory = armorItem?.category || '';
-    const armorName = armorItem?.item_name || armorItem?.name || '';
-    return armorProfs.some((prof) =>
-      armorCategory.toLowerCase().includes(prof) || armorName.toLowerCase().includes(prof)
-    );
+    const isShield = String(armorItem?.category || '').toLowerCase().includes('shield');
+    if (isShield) return armorProfsSet.has('shields');
+    const cat = String(armorItem?.armor_category || '').toLowerCase(); // 'light'|'medium'|'heavy'
+    return armorProfsSet.has(cat);
   };
 
   // Ajuda de propriedades para tooltips
@@ -423,10 +438,12 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
 
   // Equip logic com regras simples e desarmes automáticos
   const handleEquipWeapon = useCallback(async (weaponItem, slot, opts = {}) => {
+
+    console.log('handleEquipWeapon', weaponItem, slot, opts);
     if (!weaponItem?.id) return;
     const prof = isWeaponProficient(weaponItem);
     // Permitir equipar sem proficiência: sem bônus de proficiência ao atacar
-
+    console.log('handleEquipWeapon', weaponItem, slot, opts);
     if (slot === 'off_hand' && !canEquipToOffHand(weaponItem)) {
       toast.warning('Não é possível equipar na mão secundária (requer arma leve e mão principal não pode ser de duas mãos).');
       return;
@@ -535,6 +552,9 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
     } else {
       attackMod = abilityMod(abilities, 'FOR');
     }
+    console.log('profs', profs)
+    console.log('weapon.category', weapon.category)
+    console.log('weaponName', weaponName)
     const isProficient = profs.some(prof => (
       (weapon.category || '').toLowerCase().includes(prof) ||
       (weaponName || '').toLowerCase().includes(prof)
@@ -1147,6 +1167,9 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
       onClose={() => { setPopoverAnchor(null); setPopoverItem(null); }}
       placement="bottom"
       width={320}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+      marginThreshold={8}
     >
       {popoverItem && (
         <div>
@@ -1164,7 +1187,7 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
               return (
                 <div style={{ display:'flex', gap:8, marginTop:8 }}>
                   <button className={styles.stepTab} onClick={async ()=>{ await handleEquipWeapon(popoverItem,'main_hand'); setPopoverAnchor(null); }}>⚔️ Principal</button>
-                  <button className={styles.stepTab} disabled={!canEquipToOffHand(popoverItem)} title={canEquipToOffHand(popoverItem)?'':'Requer arma leve / principal sem 2 mãos'} onClick={async ()=>{ await handleEquipWeapon(popoverItem,'off_hand'); setPopoverAnchor(null); }}>🤜 Secundária</button>
+                  <button className={styles.stepTab} title={canEquipToOffHand(popoverItem)?'':'Requer arma leve / principal sem 2 mãos'} onClick={async ()=>{ await handleEquipWeapon(popoverItem,'off_hand'); setPopoverAnchor(null); }}>🤜 Secundária</button>
                 </div>
               );
             }
@@ -1231,6 +1254,13 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
               >
                 Munições
               </button>
+              <button 
+                type="button" 
+                className={`${styles.stepTab} ${selectedCategory === 'magic-items' ? styles.stepTabActive : ''}`}
+                onClick={() => setSelectedCategory('magic-items')}
+              >
+                Itens Mágicos
+              </button>
             </div>
 
             {/* Conteúdo da categoria selecionada */}
@@ -1246,11 +1276,11 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
                   <div>
                     <div className={styles.small} style={{ marginBottom: 8 }}>Selecione uma arma para adicionar:</div>
                     {availableWeapons.map((weapon) => {
-                      const weaponCategory = weapon.category || '';
-                      const isProficient = profs.some(prof => 
-                        weaponCategory.toLowerCase().includes(prof) || 
-                        weapon.name.toLowerCase().includes(prof)
-                      );
+                      const isProficient = (() => {
+                        const cat = String(weapon.weapon_category || '').toLowerCase();
+                        if (cat && weaponProfs.has(cat)) return true;
+                        return weaponProfs.has(String(weapon.name || '').toLowerCase());
+                      })();
                       
                       return (
                         <div key={weapon.index} className={styles.panel} style={{ marginBottom: 8 }}>
@@ -1265,8 +1295,8 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
                                   addItemToInventory(weapon.index, weapon.name, weapon.category, weapon.properties, 1, weapon);
                                   setShowAddModal(false);
                                 }}
-                                disabled={!isProficient}
-                                title={isProficient ? '' : 'Sem proficiência'}
+                                disabled={false}
+                                title="Adicionar ao inventário"
                                 style={{ fontSize: '12px', padding: '4px 8px' }}
                               >
                                 Adicionar
@@ -1296,6 +1326,33 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
                         </div>
                       );
                     })}
+                    
+                    {/* Controles de paginação para armas */}
+                    {pagination.total_pages > 1 && (
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 }}>
+                        <button 
+                          type="button"
+                          className={styles.stepTab}
+                          onClick={() => loadEquipmentWithPagination('simple-weapons', currentPage - 1)}
+                          disabled={!pagination.has_prev}
+                          style={{ fontSize: '12px', padding: '4px 8px' }}
+                        >
+                          Anterior
+                        </button>
+                        <span className={styles.small} style={{ color: 'var(--text-secondary)' }}>
+                          Página {pagination.current_page} de {pagination.total_pages}
+                        </span>
+                        <button 
+                          type="button"
+                          className={styles.stepTab}
+                          onClick={() => loadEquipmentWithPagination('simple-weapons', currentPage + 1)}
+                          disabled={!pagination.has_next}
+                          style={{ fontSize: '12px', padding: '4px 8px' }}
+                        >
+                          Próxima
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1303,11 +1360,12 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
                   <div>
                     <div className={styles.small} style={{ marginBottom: 8 }}>Selecione uma armadura para adicionar:</div>
                     {availableArmors.map((armor) => {
-                      const armorCategory = armor.category || '';
-                      const isProficient = armorProfs.some(prof => 
-                        armorCategory.toLowerCase().includes(prof) || 
-                        armor.name.toLowerCase().includes(prof)
-                      );
+                      const isProficient = (() => {
+                        const isShield = String(armor.category || '').toLowerCase().includes('shield');
+                        if (isShield) return armorProfsSet.has('shields');
+                        const cat = String(armor.armor_category || '').toLowerCase();
+                        return armorProfsSet.has(cat);
+                      })();
                       
                       return (
                         <div key={armor.index} className={styles.panel} style={{ marginBottom: 8 }}>
@@ -1322,8 +1380,8 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
                                   addItemToInventory(armor.index, armor.name, armor.category, armor.properties, 1, armor);
                                   setShowAddModal(false);
                                 }}
-                                disabled={!isProficient}
-                                title={isProficient ? '' : 'Sem proficiência'}
+                                disabled={false}
+                                title="Adicionar ao inventário"
                                 style={{ fontSize: '12px', padding: '4px 8px' }}
                               >
                                 Adicionar
@@ -1360,9 +1418,7 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
                   <div>
                     <div className={styles.small} style={{ marginBottom: 8 }}>Selecione um escudo para adicionar:</div>
                     {availableShields.map((shield) => {
-                      const isProficient = armorProfs.some(prof => 
-                        prof.includes('shield') || prof.includes('escudo')
-                      );
+                      const isProficient = armorProfsSet.has('shields');
                       
                       return (
                         <div key={shield.index} className={styles.panel} style={{ marginBottom: 8 }}>
@@ -1377,8 +1433,8 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
                                   addItemToInventory(shield.index, shield.name, shield.category, shield.properties, 1, shield);
                                   setShowAddModal(false);
                                 }}
-                                disabled={!isProficient}
-                                title={isProficient ? '' : 'Sem proficiência'}
+                                disabled={false}
+                                title="Adicionar ao inventário"
                                 style={{ fontSize: '12px', padding: '4px 8px' }}
                               >
                                 Adicionar
@@ -1465,6 +1521,63 @@ export default function WeaponsPanel({ summary = {}, abilities = [], sheetItemsA
                             </div>
                           </div>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedCategory === 'magic-items' && (
+                  <div>
+                    <div className={styles.small} style={{ marginBottom: 8 }}>Selecione um item mágico para adicionar:</div>
+                    {availableMagicItems.map((item) => (
+                      <div key={item.index} className={styles.panel} style={{ marginBottom: 8 }}>
+                        <div className={styles.panelHeader}>
+                          <div className={styles.panelTitle}>{item.name}</div>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <button 
+                              type="button" 
+                              className={styles.stepTab} 
+                              onClick={() => {
+                                addItemToInventory(item.index, item.name, item.category, item.properties, 1, item);
+                                setShowAddModal(false);
+                              }}
+                              style={{ fontSize: '12px', padding: '4px 8px' }}
+                            >
+                              Adicionar
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
+                          <div>
+                            <div className={styles.small} style={{ color: 'var(--text-secondary)', marginBottom: 4 }}>
+                              <strong>Raridade:</strong> {item.rarity}
+                            </div>
+                            <div className={styles.small} style={{ color: 'var(--text-secondary)', marginBottom: 4 }}>
+                              <strong>Custo:</strong> {item.cost}
+                            </div>
+                            <div className={styles.small} style={{ color: 'var(--text-secondary)', marginBottom: 4 }}>
+                              <strong>Peso:</strong> {item.weight}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <div className={styles.small} style={{ color: 'var(--text-secondary)', marginBottom: 4 }}>
+                              <strong>Categoria:</strong> {item.category}
+                            </div>
+                            <div className={styles.small} style={{ color: 'var(--text-secondary)', marginBottom: 4 }}>
+                              <strong>Requer Sintonia:</strong> {item.requires_attunement ? 'Sim' : 'Não'}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {item.description && (
+                          <div style={{ marginTop: 8 }}>
+                            <div className={styles.small} style={{ color: 'var(--text-secondary)' }}>
+                              <strong>Descrição:</strong> {item.description}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

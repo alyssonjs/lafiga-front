@@ -34,7 +34,7 @@
 
 .alert[data-variant="default"] {
   background-color: var(--primary);
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .alert[data-variant="destructive"] {

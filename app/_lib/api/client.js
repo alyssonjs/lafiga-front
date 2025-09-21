@@ -106,7 +106,7 @@ export const apiClient = {
     return data;
   },
 
-  async delete(endpoint, options = {}) {
+  async delete(endpoint, body, options = {}) {
     const token =
       typeof window !== "undefined"
         ? localStorage.getItem("token")
@@ -118,10 +118,19 @@ export const apiClient = {
         "Authorization": `Bearer ${token}`,
         ...options.headers,
       },
+      body: JSON.stringify(body),
       cache: options.cache || "no-cache",
     });
-    if (!response.ok)
-      throw new Error(`HTTP error! status: ${response.status}`);
-    return response.json();
+    // Safely parse JSON (DELETE may return 204 No Content)
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = data.errors
+        ? data.errors.join(", ")
+        : data.error || response.statusText;
+      const error = new Error(message);
+      error.response = data;
+      throw error;
+    }
+    return data;
   },
 };

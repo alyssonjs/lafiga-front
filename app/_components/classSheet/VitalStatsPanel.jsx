@@ -12,7 +12,17 @@ export default function VitalStatsPanel({ atributos = [], desloc = '—', vida =
     try { return Number(summary?.equipment?.ac?.ac); } catch (_) { return null; }
   })();
   const ca = Number.isFinite(caFromSummary) ? caFromSummary : (10 + dexMod);
-  const iniciativa = dexMod;
+  const iniciativa = (() => {
+    let base = dexMod;
+    try {
+      const halfOnInit = !!(summary?.proficiency_overrides?.half_proficiency_on_non_proficient_checks) && !!(summary?.proficiency_overrides?.applies_to_initiative);
+      if (halfOnInit) {
+        const pb = Number(summary?.prof_bonus || 0);
+        base += Math.floor(pb / 2);
+      }
+    } catch(_) {}
+    return base;
+  })();
   const die = String(hitDie).startsWith('d') ? String(hitDie) : `d${hitDie}`;
 
   const caSource = (() => { try { return summary?.equipment?.ac?.source; } catch(_) { return null; } })();
@@ -62,6 +72,39 @@ export default function VitalStatsPanel({ atributos = [], desloc = '—', vida =
             </div>
           </div>
         </div>
+
+        {(() => {
+          try {
+            const res = summary?.resources || {};
+            const entries = Object.entries(res);
+            if (!entries.length) return null;
+            const labelMap = { rage: 'Fúria', second_wind: 'Vento Segundo', action_surge: 'Surto de Ação', ki: 'Ki', divine_sense: 'Sentido Divino', lay_on_hands: 'Cura pelas Mãos', sorcery_points: 'Pontos de Feitiçaria' };
+            const fmt = (val) => {
+              if (val == null) return '—';
+              if (typeof val === 'object') {
+                const parts = [];
+                if (val.uses != null) parts.push(`${val.uses}`);
+                if (val.pool != null) parts.push(`${val.pool}`);
+                if (val.count != null) parts.push(`${val.count}`);
+                return parts.join(' / ') || '—';
+              }
+              return String(val);
+            };
+            return (
+              <div style={{ marginTop: 12 }}>
+                <div className={styles.panelTitle}>Recursos de Classe</div>
+                <div className={styles.conjBoxRow}>
+                  {entries.map(([key, val]) => (
+                    <div key={key} className={styles.conjBox}>
+                      <div className={styles.conjLabel}>{labelMap[key] || key}</div>
+                      <div className={styles.conjPill}>{fmt(val)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          } catch(_) { return null; }
+        })()}
       </CardContent>
     </Card>
   );

@@ -33,7 +33,7 @@ const Select = ({
     multiselect ? (Array.isArray(value) ? value : []) : []
   );
   const [selectedOption, setSelectedOption] = useState(() =>
-    !multiselect && value != null ? options.find((o) => o.id === value) || null : null
+    !multiselect && value != null ? options.find((o) => String(o.id) === String(value)) || null : null
   );
   const [showOptionList, setShowOptionList] = useState(false);
   const [listDirection, setListDirection] = useState("down");
@@ -45,7 +45,7 @@ const Select = ({
       setSelectedOptions(Array.isArray(value) ? value : []);
     }
     if (!multiselect && value != null) {
-      setSelectedOption(options.find((o) => o.id === value) || null);
+      setSelectedOption(options.find((o) => String(o.id) === String(value)) || null);
     }
   }, [value, multiselect, options]);
 

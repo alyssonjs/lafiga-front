@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useReducer, useRef } from "react";
 import {
   Dialog,
   DialogHeader,
@@ -10,16 +10,27 @@ import {
   DialogFooter,
 } from "../UI/Dialog";
 import Select from "../UI/Select";
-import TextArea from "../UI/TextArea";
 import Button from "../UI/Button";
 import Input from "../UI/Input";
 import LanguageSelect from "../common/LanguageSelect";
 import { crudFor } from "../../_services/railsApi";
 import { apiClient } from "../../_lib/api/client";
 import { useAuth } from "../../_context/AuthContext";
+import useWizard from "../../_hooks/useWizard";
+import useRaceCatalogs from "../../_hooks/useRaceCatalogs";
+import useClassCatalogs from "../../_hooks/useClassCatalogs";
+import useBackgroundCatalog from "../../_hooks/useBackgroundCatalog";
+import useAlignmentOptions from "../../_hooks/useAlignmentOptions";
+import useSpellCatalog from "../../_hooks/useSpellCatalog";
+import { RULE_NAME_MAP, computeAbilityBonuses as computeAbilityBonusesUtil } from "../../_lib/character/abilities";
+import { areClassChoicesComplete as areClassChoicesCompleteUtil, getLevelUpErrors as getLevelUpErrorsUtil } from "../../_lib/character/classValidation";
 import styles from "../../_styles/character/CharacterForm.module.css";
 import AttributesSidePanel from "../characterSteps/AttributesSidePanel";
 import RaceOptionsSwitch from "../races/RaceOptionsSwitch";
+import RacePreview from "../races/RacePreview";
+import SheetPreviewHeader from "./SheetPreviewHeader";
+import AbilityMethodSection from "../characterSteps/AbilityMethodSection";
+import ClassFinalSummary from "../characterSteps/ClassFinalSummary";
 import ClassStepper from "../classSteps/ClassStepper";
 import FeaturesSidebar from "../classSteps/FeaturesSidebar";
 import StepEquipment from "../characterSteps/StepEquipment";
@@ -27,41 +38,29 @@ import StepTabs from "../characterSteps/StepTabs";
 import ASISummaryPanel from "../classSteps/ASISummaryPanel";
 import StepBackground from "../characterSteps/StepBackground";
 import StepAlignment from "../characterSteps/StepAlignment";
+import { Card, CardHeader, CardTitle, CardContent } from "../UI/Card";
+import useSubclassEquipGrants from "../../_hooks/useSubclassEquipGrants";
+import useRaceSpellExtras from "../../_hooks/useRaceSpellExtras";
 
-const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline = false }) => {
+const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline = false, initialStep = null }) => {
   const isEdit = Boolean(character);
 
   const [name, setName] = useState("");
   const [background, setBackground] = useState("");
   const [groupId, setGroupId] = useState("");
   const [userId, setUserId] = useState("");
-  const steps = [
-    { id: 1, name: 'Raça' },
-    { id: 2, name: 'Antecedente' },
-    { id: 3, name: 'Classe' },
-    { id: 4, name: 'Alinhamento' },
-    { id: 5, name: 'Equipamentos' },
-    { id: 6, name: 'Finalizar' },
-  ];
-  const [step, setStep] = useState(1);
-  const [races, setRaces] = useState([]);
-  const [subRaces, setSubRaces] = useState([]);
-  const [klasses, setKlasses] = useState([]);
-  const [subKlasses, setSubKlasses] = useState([]);
-  const [raceRules, setRaceRules] = useState({});
+  const [draftData, setDraftData] = useState({});
+  const [draftCharId, setDraftCharId] = useState(null);
+  const [subclassesForKlass, setSubclassesForKlass] = useState([]);
   const [wizardCantripOptions, setWizardCantripOptions] = useState([]);
-  const [classRules, setClassRules] = useState({});
-  const [classDicts, setClassDicts] = useState({ instruments: [], fighting_styles: [], skills_all: [] });
 
   const CLASS_NAME_MAP = {
-    'Bárbaro':'barbarian','Bardo':'bard','Clérigo':'cleric','Druida':'druid','Guerreiro':'fighter','Monge':'monk','Paladino':'paladin','Patrulheiro':'ranger','Ladino':'rogue','Feiticeiro':'sorcerer','Bruxo':'warlock','Mago':'wizard'
+    'Bárbaro':'barbarian','Bardo':'bard','Clérigo':'cleric','Druida':'druid','Guerreiro':'fighter','Monge':'monk','Paladino':'paladin','Patrulheiro':'ranger','Ladino':'rogue','Feiticeiro':'sorcerer','Bruxo':'warlock','Mago':'wizard',
+    'Cozinheiro': 'cozinheiro'
   };
 
-  const [raceId, setRaceId] = useState("");
-  const [subRaceId, setSubRaceId] = useState("");
-  const [klassId, setKlassId] = useState("");
-  const [subKlassId, setSubKlassId] = useState("");
-  const [level, setLevel] = useState(1);
+  // Removed local class id/subclass id; use wizardState.klass
+  // Removed local level; use wizardState.klass.level
 
   const [str, setStr] = useState(10);
   const [dex, setDex] = useState(10);
@@ -70,8 +69,125 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
   const [wis, setWis] = useState(10);
   const [cha, setCha] = useState(10);
   // Método de atributos (agora focado em rolagem 4d6)
-  const [abilityMethod, setAbilityMethod] = useState('roll_4d6'); // 'point_buy' | 'roll_4d6'
-  const [rolledScores, setRolledScores] = useState([]); // guarda 6 valores de 4d6 (3 maiores)
+
+  // Catalog state placeholders (filled lazily by hooks later)
+  const [races, setRaces] = useState([]);
+  const [subRaces, setSubRaces] = useState([]);
+  const [raceRules, setRaceRules] = useState({});
+  const [raceTraitDefs, setRaceTraitDefs] = useState({});
+  const [klasses, setKlasses] = useState([]);
+  const [subKlasses, setSubKlasses] = useState([]);
+  const [classRules, setClassRules] = useState({});
+  const [classDicts, setClassDicts] = useState({});
+  const [backgroundOptions, setBackgroundOptions] = useState([]);
+  const [backgroundIndexMap, setBackgroundIndexMap] = useState({});
+
+  // Catalog hooks moved below wizard init to use current step
+
+  // Consolidated wizard state via reducer (slices)
+  const initialWizardState = useMemo(() => ({
+    race: {
+      raceId: "",
+      subRaceId: "",
+      abilityMethod: 'roll_4d6',
+      rolledScores: [],
+      raceChoices: {},
+      attributes: { str, dex, con, int: intA, wis, cha },
+    },
+    background: {
+      backgroundKey: "",
+      backgroundName: "",
+      backgroundProfs: [],
+      backgroundChoices: {},
+      backgroundData: null,
+    },
+    klass: {
+      klassId: "",
+      classSubclassId: null,
+      classSkillPicks: [],
+      classInstrumentPicks: [],
+      classFightingStyle: null,
+      pickedCantrips: [],
+      pickedSpells: [],
+      asiChoice: null,
+      classPicksByLevel: {},
+      level: 1,
+    },
+    equipment: { equipmentPicks: [] },
+    meta: {
+      name: name || "",
+      alignmentKey: "",
+    },
+  }), []);
+
+  function wizardReducer(state, action) {
+    switch (action.type) {
+      case 'PATCH_RACE':
+        return { ...state, race: { ...state.race, ...(action.payload || {}) } };
+      case 'PATCH_BACKGROUND':
+        return { ...state, background: { ...state.background, ...(action.payload || {}) } };
+      case 'PATCH_KLASS':
+        return { ...state, klass: { ...state.klass, ...(action.payload || {}) } };
+      case 'PATCH_EQUIPMENT':
+        return { ...state, equipment: { ...state.equipment, ...(action.payload || {}) } };
+      case 'PATCH_META':
+        return { ...state, meta: { ...state.meta, ...(action.payload || {}) } };
+      case 'RESET':
+        return initialWizardState;
+      default:
+        return state;
+    }
+  }
+
+  const [wizardState, dispatchWizard] = useReducer(wizardReducer, initialWizardState);
+
+  // Wrapper setters: update local state (legacy paths) and reducer (single source)
+  const setRaceIdW = useCallback((v) => { dispatchWizard({ type: 'PATCH_RACE', payload: { raceId: v } }); }, [dispatchWizard]);
+  const setSubRaceIdW = useCallback((v) => { dispatchWizard({ type: 'PATCH_RACE', payload: { subRaceId: v } }); }, [dispatchWizard]);
+  const setRaceChoicesW = useCallback((patch) => {
+    const next = typeof patch === 'function' ? patch(wizardState.race.raceChoices || {}) : patch;
+    dispatchWizard({ type: 'PATCH_RACE', payload: { raceChoices: next } });
+  }, [dispatchWizard, wizardState.race.raceChoices]);
+  const setAbilityMethodW = useCallback((v) => { dispatchWizard({ type: 'PATCH_RACE', payload: { abilityMethod: v } }); }, [dispatchWizard]);
+  const setRolledScoresW = useCallback((arr) => { dispatchWizard({ type: 'PATCH_RACE', payload: { rolledScores: arr } }); }, [dispatchWizard]);
+  const setStrW  = useCallback((v)=>{ setStr(v);  dispatchWizard({ type:'PATCH_RACE', payload:{ attributes:{ ...wizardState.race.attributes, str: v } } }); }, [dispatchWizard, wizardState.race.attributes]);
+  const setDexW  = useCallback((v)=>{ setDex(v);  dispatchWizard({ type:'PATCH_RACE', payload:{ attributes:{ ...wizardState.race.attributes, dex: v } } }); }, [dispatchWizard, wizardState.race.attributes]);
+  const setConW  = useCallback((v)=>{ setCon(v);  dispatchWizard({ type:'PATCH_RACE', payload:{ attributes:{ ...wizardState.race.attributes, con: v } } }); }, [dispatchWizard, wizardState.race.attributes]);
+  const setIntW  = useCallback((v)=>{ setIntA(v); dispatchWizard({ type:'PATCH_RACE', payload:{ attributes:{ ...wizardState.race.attributes, int: v } } }); }, [dispatchWizard, wizardState.race.attributes]);
+  const setWisW  = useCallback((v)=>{ setWis(v);  dispatchWizard({ type:'PATCH_RACE', payload:{ attributes:{ ...wizardState.race.attributes, wis: v } } }); }, [dispatchWizard, wizardState.race.attributes]);
+  const setChaW  = useCallback((v)=>{ setCha(v);  dispatchWizard({ type:'PATCH_RACE', payload:{ attributes:{ ...wizardState.race.attributes, cha: v } } }); }, [dispatchWizard, wizardState.race.attributes]);
+
+  const setBackgroundKeyW = useCallback((v)=>{ setBackgroundKey(v); dispatchWizard({ type:'PATCH_BACKGROUND', payload:{ backgroundKey: v } }); }, [dispatchWizard]);
+  const setBackgroundNameW = useCallback((v)=>{ setBackgroundName(v); dispatchWizard({ type:'PATCH_BACKGROUND', payload:{ backgroundName: v } }); }, [dispatchWizard]);
+  const setBackgroundProfsW = useCallback((v)=>{ setBackgroundProfs(v); dispatchWizard({ type:'PATCH_BACKGROUND', payload:{ backgroundProfs: v } }); }, [dispatchWizard]);
+  const setBackgroundChoicesW = useCallback((v)=>{ setBackgroundChoices(v); dispatchWizard({ type:'PATCH_BACKGROUND', payload:{ backgroundChoices: v } }); }, [dispatchWizard]);
+  const setBackgroundDataW = useCallback((v)=>{ setBackgroundData(v); dispatchWizard({ type:'PATCH_BACKGROUND', payload:{ backgroundData: v } }); }, [dispatchWizard]);
+
+  const setKlassIdW = useCallback((v)=>{ dispatchWizard({ type:'PATCH_KLASS', payload:{ klassId: v } }); }, [dispatchWizard]);
+  const setClassSubclassIdW = useCallback((v)=>{ dispatchWizard({ type:'PATCH_KLASS', payload:{ classSubclassId: v } }); }, [dispatchWizard]);
+  const setClassSkillPicksW = useCallback((v)=>{ dispatchWizard({ type:'PATCH_KLASS', payload:{ classSkillPicks: v } }); }, [dispatchWizard]);
+  const setClassInstrumentPicksW = useCallback((v)=>{ dispatchWizard({ type:'PATCH_KLASS', payload:{ classInstrumentPicks: v } }); }, [dispatchWizard]);
+  const setClassFightingStyleW = useCallback((v)=>{ dispatchWizard({ type:'PATCH_KLASS', payload:{ classFightingStyle: v } }); }, [dispatchWizard]);
+  const setPickedCantripsW = useCallback((v)=>{
+    const next = (typeof v === 'function') ? v(wizardState.klass?.pickedCantrips || []) : v;
+    dispatchWizard({ type:'PATCH_KLASS', payload:{ pickedCantrips: next } });
+  }, [dispatchWizard, wizardState.klass?.pickedCantrips]);
+  const setPickedSpellsW = useCallback((v)=>{
+    const next = (typeof v === 'function') ? v(wizardState.klass?.pickedSpells || []) : v;
+    dispatchWizard({ type:'PATCH_KLASS', payload:{ pickedSpells: next } });
+  }, [dispatchWizard, wizardState.klass?.pickedSpells]);
+  const setAsiChoiceW = useCallback((v)=>{ dispatchWizard({ type:'PATCH_KLASS', payload:{ asiChoice: v } }); }, [dispatchWizard]);
+  const setClassPicksByLevelW = useCallback((patch)=>{
+    const curr = wizardState.klass?.classPicksByLevel || {};
+    const next = (typeof patch === 'function') ? patch(curr) : patch;
+    dispatchWizard({ type:'PATCH_KLASS', payload:{ classPicksByLevel: next } });
+  }, [dispatchWizard, wizardState.klass?.classPicksByLevel]);
+  const setLevelW = useCallback((v)=>{ dispatchWizard({ type:'PATCH_KLASS', payload:{ level: v } }); }, [dispatchWizard]);
+
+  const setEquipmentPicksW = useCallback((v)=>{ dispatchWizard({ type:'PATCH_EQUIPMENT', payload:{ equipmentPicks: v } }); }, [dispatchWizard]);
+
+  const setAlignmentKeyW = useCallback((v)=>{ setAlignmentKey(v); dispatchWizard({ type:'PATCH_META', payload:{ alignmentKey: v } }); }, [dispatchWizard]);
+  const setNameW = useCallback((v)=>{ setName(v); dispatchWizard({ type:'PATCH_META', payload:{ name: v } }); }, [dispatchWizard]);
 
   const roll4d6DropLowest = () => {
     const dice = [1,2,3,4].map(() => (Math.floor(Math.random() * 6) + 1));
@@ -80,23 +196,18 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
   };
   const rollSixScores = () => {
     const vals = Array.from({length:6}, ()=> roll4d6DropLowest());
-    setRolledScores(vals);
-    setAbilityMethod('roll_4d6');
+    setRolledScoresW(vals);
+    setAbilityMethodW('roll_4d6');
     // limpa atribuições atuais para evitar conflito de valores iguais ao pool
-    setStr(0); setDex(0); setCon(0); setIntA(0); setWis(0); setCha(0);
+    setStrW(0); setDexW(0); setConW(0); setIntW(0); setWisW(0); setChaW(0);
   };
 
   // Race/background specific choices (stored in sheet.metadata)
-  const [raceChoices, setRaceChoices] = useState([]); // e.g., idiomas, proficiências
   const [backgroundName, setBackgroundName] = useState("");
   const [backgroundKey, setBackgroundKey] = useState("");
-  const [backgroundOptions, setBackgroundOptions] = useState([]);
-  const [backgroundIndexMap, setBackgroundIndexMap] = useState({});
   const [backgroundDetails, setBackgroundDetails] = useState(null);
-  const [alignments, setAlignments] = useState([]);
-  const [alignmentMap, setAlignmentMap] = useState({});
   const [alignmentKey, setAlignmentKey] = useState("");
-  const [alignmentDetails, setAlignmentDetails] = useState(null);
+  const { alignments, alignmentMap, alignmentDetails } = useAlignmentOptions(alignmentKey);
   const [backgroundProfs, setBackgroundProfs] = useState([]);
   const [backgroundChoices, setBackgroundChoices] = useState({ languages: [], gaming_set: [], instrument: [] });
   const [backgroundValid, setBackgroundValid] = useState(true);
@@ -117,7 +228,7 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
     { id: 'investigation', name: 'Investigação' },
     { id: 'nature', name: 'Natureza' },
     { id: 'religion', name: 'Religião' },
-    { id: 'animal-handling', name: 'Trato com Animais' },
+    { id: 'animal-handling', name: 'Lidar com Animais' },
     { id: 'insight', name: 'Intuição' },
     { id: 'medicine', name: 'Medicina' },
     { id: 'perception', name: 'Percepção' },
@@ -128,59 +239,125 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
     { id: 'persuasion', name: 'Persuasão' },
   ];
 
+  // Effective class values (prefer wizardState; fall back to local)
+  const effKlassId = wizardState.klass?.klassId;
+  const effLevel = wizardState.klass?.level || 1;
+  const effClassSubclassId = wizardState.klass?.classSubclassId;
+  const effClassPicksByLevel = wizardState.klass?.classPicksByLevel || {};
+  const effClassFightingStyle = wizardState.klass?.classFightingStyle || null;
+  const effClassSkillPicks = wizardState.klass?.classSkillPicks || [];
+  const effClassInstrumentPicks = wizardState.klass?.classInstrumentPicks || [];
+
   // Spells selection (known/prepared basic support)
-  const [cantripOptions, setCantripOptions] = useState([]);
-  const [spellOptions, setSpellOptions] = useState([]);
-  const [spellCatalog, setSpellCatalog] = useState([]);
-  const [pickedCantrips, setPickedCantrips] = useState([]);
-  const [pickedSpells, setPickedSpells] = useState([]);
-  const [klassLevels, setKlassLevels] = useState([]);
-  const [asiChoice, setAsiChoice] = useState(null);
-  const [classPicksByLevel, setClassPicksByLevel] = useState({});
-  const [equipmentPicks, setEquipmentPicks] = useState([]);
+  const { cantripOptions, spellOptions, spellCatalog, klassLevels } = useSpellCatalog(effKlassId, effClassSubclassId, effLevel);
+  // Removed local pickedCantrips/pickedSpells/asiChoice; use wizardState.klass
+  // Removed local classPicksByLevel; use wizardState.klass.classPicksByLevel
+  // equipmentPicks now sourced from wizardState.equipment; local state removed
+  // Removed local class picks and fighting style; use wizardState.klass
+  // Subclass equip grants via hook
+  const { armorCats: subclassArmorCats, weaponCats: subclassWeaponCats } = useSubclassEquipGrants({
+    subclassId: effClassSubclassId,
+    klassId: effKlassId,
+    level: effLevel,
+    subKlasses,
+  });
 
-  const handleStepChange = (stepId) => {
-    setStep(stepId);
-  };
-
-  const handleNext = () => {
-    if (step < 6) {
-      setStep(step + 1);
-    } else if (step === 6) {
-      // No step 6, o botão "Criar Personagem" deve submeter o formulário
-      const form = document.querySelector('form');
-      if (form) {
-        form.requestSubmit();
+  // Fetch subclasses for selected klass from API (always authoritative)
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!effKlassId) { setSubclassesForKlass([]); return; }
+        const res = await apiClient.get(`/api/v1/public/klasses/${effKlassId}/subclasses`);
+        setSubclassesForKlass(res.subclasses || []);
+      } catch (e) {
+        // keep previous or empty on failure
       }
-    }
-  };
+    })();
+  }, [effKlassId]);
 
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
+  // subclassNameById defined after catalogs are available (moved below)
+
+  const characterCurrentStep = character && character.current_step != null
+    ? Number(character.current_step)
+    : null;
+
+  const initialWizardStep = useMemo(() => {
+    if (initialStep && Number(initialStep) > 0) return Number(initialStep);
+    if (characterCurrentStep && Number(characterCurrentStep) > 0) {
+      return Number(characterCurrentStep);
     }
-  };
+    return 1;
+  }, [initialStep, characterCurrentStep]);
+
+  // Attributes assigned gating must be declared before step descriptors
+  const attributesAssigned = (
+    (wizardState.race?.abilityMethod || 'roll_4d6') !== 'roll_4d6' || (
+      Array.isArray(wizardState.race?.rolledScores) && (wizardState.race.rolledScores || []).length === 6 &&
+      [str, dex, con, intA, wis, cha].every(v => Number(v) > 0)
+    )
+  );
+
+  // Selected race/subrace and race rules mapping must precede usages below
+  const selectedRace = races.find(r=> String(r.id) === String(wizardState.race?.raceId));
+  const selectedSubRace = subRaces.find(sr=> String(sr.id) === String(wizardState.race?.subRaceId));
+  // Prefer API index from backend; fallback to RULE_NAME_MAP; ensure it exists in raceRules
+  let ruleId = (selectedRace?.api_index) || RULE_NAME_MAP[selectedRace?.name] || null;
+  if (ruleId && !raceRules?.[ruleId]) {
+    const mapped = RULE_NAME_MAP[selectedRace?.name];
+    if (mapped && raceRules?.[mapped]) ruleId = mapped;
+  }
+  const rule = ruleId ? raceRules[ruleId] : null;
+  const subRuleId = (()=>{
+    if(!rule || !selectedSubRace) return null;
+    const name = (selectedSubRace.name||'').toLowerCase();
+    if (selectedSubRace.api_index) return selectedSubRace.api_index;
+    if(ruleId==='dwarf') return name.includes('montanha')? 'mountain' : name.includes('colina')? 'hill': null;
+    if(ruleId==='elf') return name.includes('alto')? 'high' : name.includes('floresta')? 'wood' : name.includes('negro')? 'drow' : null;
+    if(ruleId==='tiefling') return name.includes('abiss')? 'abissal' : (name.includes('cton')||name.includes('ctô'))? 'ctonico' : name.includes('infer')? 'infernal' : null;
+    if(ruleId==='aarakocra') return name.includes('falc')? 'falconicos' : name.includes('noct')? 'nocturnos' : name.includes('cyps')? 'cypselanos' : null;
+    if(ruleId==='gnome') return name.includes('floresta')? 'forest' : name.includes('rocha')? 'rock' : null;
+    if(ruleId==='human') return name.includes('variante')? 'variant': null;
+    if(ruleId==='halfling') return name.includes('leves')? 'lightfoot' : name.includes('robusto')? 'stout' : null;
+    return null;
+  })();
+
+  // Build new draft schema using consolidated wizardState
+  const buildDraftData = useCallback(() => {
+    // Persist ruleId/subRuleId (api_index) para hidratação resiliente
+    const raceWithKeys = {
+      ...wizardState.race,
+      ruleId: (typeof ruleId !== 'undefined' && ruleId) ? ruleId : (wizardState.race?.ruleId || null),
+      subRuleId: (typeof subRuleId !== 'undefined' && subRuleId) ? subRuleId : (wizardState.race?.subRuleId || null),
+    };
+    return {
+      race: raceWithKeys,
+      background: { ...wizardState.background },
+      klass: { ...wizardState.klass },
+      equipment: { ...wizardState.equipment },
+      meta: { ...wizardState.meta },
+    };
+  }, [wizardState, ruleId, subRuleId]);
+
+  
 
   // Função para verificar se todas as escolhas obrigatórias da classe foram feitas
-  const areClassChoicesComplete = () => {
-    if (!klassId || !classRules) return false;
-    const klass = klasses.find(k => k.id === klassId);
+  const areClassChoicesComplete = useCallback(() => {
+    if (!effKlassId || !classRules) return false;
+    const klass = klasses.find(k => String(k.id) === String(effKlassId));
     if (!klass) return false;
     const klassApiIndex = klass.api_index || klass.name.toLowerCase();
     const rule = classRules[klassApiIndex];
     if (!rule) return false;
-    // Subclasse obrigatória
     const subclassLevel = rule.subclass?.choose_level;
-    if (subclassLevel && Number(level) >= subclassLevel && !classSubclassId) return false;
-    // Escolhas obrigatórias por nível (genérico)
+    if (subclassLevel && Number(effLevel) >= subclassLevel && !effClassSubclassId) return false;
     const requiredChoices = rule.required_choices_at_level || {};
-    for (let lvl = 1; lvl <= Number(level); lvl++) {
+    for (let lvl = 1; lvl <= Number(effLevel); lvl++) {
       const levelChoices = requiredChoices[lvl];
       if (!levelChoices) continue;
-      const row = (classPicksByLevel?.[lvl]) || {};
+      const row = (effClassPicksByLevel?.[lvl]) || {};
       for (const [choiceKey, config] of Object.entries(levelChoices)) {
         if (choiceKey === 'fighting_style') {
-          const fs = row.fighting_style || classFightingStyle;
+          const fs = row.fighting_style || effClassFightingStyle;
           if (!fs) return false;
           continue;
         }
@@ -190,89 +367,276 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
         if (arr.length < need) return false;
       }
     }
-    return true;
-  };
-
-  // Função para obter mensagens de erro sobre escolhas obrigatórias
-  const getLevelUpErrors = () => {
-    const errors = [];
-    
-    if (!klassId || !classRules) {
-      errors.push('Selecione uma classe');
-      return errors;
-    }
-    
-    const klass = klasses.find(k => k.id === klassId);
-    if (!klass) {
-      errors.push('Classe não encontrada');
-      return errors;
-    }
-    
-    const klassApiIndex = klass.api_index || klass.name.toLowerCase();
-    const rule = classRules[klassApiIndex];
-    
-    if (!rule) {
-      errors.push('Regras da classe não encontradas');
-      return errors;
-    }
-    
-    // Verificar subclasse obrigatória
-    const subclassLevel = rule.subclass?.choose_level;
-    const currentLevel = Number(level);
-    
-    if (subclassLevel && currentLevel >= subclassLevel && !classSubclassId) {
-      errors.push(`Subclasse obrigatória a partir do nível ${subclassLevel}`);
-    }
-    
-    // Verificar escolhas obrigatórias por nível (genérico)
-    const requiredChoices = rule.required_choices_at_level || {};
-    for (let lvl = 1; lvl <= currentLevel; lvl++) {
-      const levelChoices = requiredChoices[lvl];
-      if (!levelChoices) continue;
-      console.log(levelChoices, 'levelChoises')
-      const row = (classPicksByLevel?.[lvl]) || {};
-      for (const [choiceKey, config] of Object.entries(levelChoices)) {
-        const need = Number(config?.choose || 1);
-        if (choiceKey === 'fighting_style') {
-          const fs = row.fighting_style || classFightingStyle;
-          if (!fs) errors.push(`Estilo de luta obrigatório no nível ${lvl}`);
-          continue;
-        }
-        const val = row?.[choiceKey];
-        const arr = Array.isArray(val) ? val : (val ? [val] : []);
-        if (arr.length < need) {
-          console.log(arr.length, need, '---------------------') 
-          const label = choiceKey.replace('_',' ');
-          errors.push(`${label}: faltam ${need - arr.length} no nível ${lvl}`);
+    try {
+      if (effClassSubclassId) {
+        const sc = (subclassesForKlass || []).find((s) => String(s.id) === String(effClassSubclassId));
+        const addReq = (sc && sc.additional_choices_by_level) || {};
+        for (let lvl = 1; lvl <= Number(effLevel); lvl++) {
+          const cfg = addReq[String(lvl)] || addReq[lvl];
+          if (!cfg) continue;
+          const row = (effClassPicksByLevel?.[lvl]) || {};
+          for (const [choiceKey, conf] of Object.entries(cfg)) {
+            const need = Number(conf?.choose || 1);
+            const v = row?.[choiceKey];
+            const arr = Array.isArray(v) ? v : (v ? [v] : []);
+            if (arr.length < need) return false;
+          }
         }
       }
-    }
-    
-    console.log('🔍 getLevelUpErrors - final errors:', errors);
-    return errors;
-  };
+    } catch (_) {}
+    return true;
+  }, [
+    effKlassId,
+    classRules,
+    klasses,
+    effLevel,
+    effClassSubclassId,
+    effClassPicksByLevel,
+    effClassFightingStyle,
+    subclassesForKlass,
+  ]);
+
+  // Erros de level-up (via util)
+  const getLevelUpErrors = useCallback(() => (
+    getLevelUpErrorsUtil({
+      klassId: effKlassId,
+      classRules,
+      klasses,
+      level: effLevel,
+      classSubclassId: effClassSubclassId,
+      classPicksByLevel: effClassPicksByLevel,
+      classFightingStyle: effClassFightingStyle,
+      subclassesForKlass,
+    })
+  ), [effKlassId, classRules, klasses, effLevel, effClassSubclassId, effClassPicksByLevel, effClassFightingStyle, subclassesForKlass]);
 
   // Função para verificar se o level up pode ser feito
-  const canLevelUp = () => {
+  const canLevelUp = useCallback(() => {
     const errors = getLevelUpErrors();
-    console.log('🔍 canLevelUp - errors:', errors);
-    console.log('🔍 canLevelUp - can level up:', errors.length === 0);
+    // debug: canLevelUp errors suppressed in production
     return errors.length === 0;
+  }, [getLevelUpErrors]);
+
+  // Selected race/subrace and race rules mapping declared above
+
+  // Fallback de hidratação: se vier ruleId/subRuleId no draft mas não houver ids do DB
+  useEffect(() => {
+    try {
+      const r = wizardState.race || {};
+      if (!r.raceId && r.ruleId && Array.isArray(races) && races.length > 0) {
+        const hit = races.find((rc) => String((rc.api_index || RULE_NAME_MAP[rc.name] || '')).toLowerCase() === String(r.ruleId).toLowerCase());
+        if (hit && hit.id) setRaceIdW(hit.id);
+      }
+    } catch (_) {}
+  }, [wizardState.race?.raceId, wizardState.race?.ruleId, races]);
+
+  useEffect(() => {
+    try {
+      const r = wizardState.race || {};
+      if (r.raceId && !r.subRaceId && r.subRuleId && Array.isArray(subRaces) && subRaces.length > 0) {
+        const list = subRaces.filter((sr) => String(sr.race_id) === String(r.raceId));
+        const hit = list.find((sr) => String((sr.api_index || (sr.name || '')).toLowerCase()).includes(String(r.subRuleId).toLowerCase()));
+        if (hit && hit.id) setSubRaceIdW(hit.id);
+      }
+    } catch (_) {}
+  }, [wizardState.race?.raceId, wizardState.race?.subRuleId, wizardState.race?.subRaceId, subRaces]);
+
+  const raceReady = (() => {
+    if (!ruleId) return false;
+    const subLangCount = (rule?.subraces && subRuleId && rule.subraces[subRuleId]?.languages?.choiceCount) ? rule.subraces[subRuleId].languages.choiceCount : 0;
+    const baseLangCount = rule?.languages?.choiceCount || 0;
+    const requiredLangCount = baseLangCount + subLangCount;
+    const rc = wizardState.race?.raceChoices || {};
+    const selectedLangBase = Array.isArray(rc?.extraLanguages) ? rc.extraLanguages.length : 0;
+    const selectedLangHighElf = (ruleId === 'elf' && subRuleId === 'high' && rc?.highElfExtraLanguage) ? 1 : 0;
+    const langOk = (selectedLangBase + selectedLangHighElf) >= requiredLangCount;
+    switch (ruleId) {
+      case 'dwarf':
+        return !!rc?.dwarfTool && langOk;
+      case 'elf':
+        if (subRuleId === 'high') return !!rc?.highElfCantrip && langOk;
+        return langOk;
+      case 'human':
+        if (subRuleId === 'variant') {
+          const hv = rc?.variantHumanASI || null;
+          if (!hv || !hv.mode) return false;
+          if (hv.mode === 'attributes') {
+            const attrs = Array.isArray(hv.attributes) ? hv.attributes : [];
+            const uniq = Array.from(new Set(attrs));
+            return uniq.length === 2 && langOk;
+          }
+          if (hv.mode === 'feat') {
+            const ch = hv.choices || {};
+            const featId = hv.featId || hv.featName || null;
+            if (!featId) return false;
+            if (String(featId) === 'resiliente') return (!!ch.ability && !!ch.saving_throws) && langOk;
+            if (String(featId) === 'atleta') return (!!ch.ability) && langOk;
+            if (String(featId) === 'magico_iniciante') {
+              const canOk = Array.isArray(ch.cantrips) && ch.cantrips.length === 2;
+              const spOk = Array.isArray(ch.spells) && ch.spells.length === 1;
+              const clazzOk = !!ch.klass_id || !!ch.cantrip_class || !!ch.spell_class;
+              return (!!ch.ability && clazzOk && canOk && spOk) && langOk;
+            }
+            return langOk;
+          }
+          return false;
+        }
+        return langOk;
+      case 'half_elf': {
+        const picks = Array.isArray(rc?.halfElfAbilityPicks) ? rc.halfElfAbilityPicks : [];
+        const noCha = picks.every(p => (p?.id || p) !== 'CHA');
+        return picks.length === 2 && noCha && Array.isArray(rc?.halfElfSkillPicks) && rc.halfElfSkillPicks.length === 2 && langOk;
+      }
+      case 'dragonborn':
+        return !!rc?.draconicAncestry && langOk;
+      default:
+        return langOk;
+    }
+  })();
+
+  const stepDescriptors = useMemo(
+    () => [
+      {
+        id: 1,
+        name: "Raça",
+        canProceed: Boolean(wizardState.race?.raceId) && Boolean(raceReady) && attributesAssigned,
+        snapshot: () => buildDraftData(),
+      },
+      {
+        id: 2,
+        name: "Antecedente",
+        canProceed: Boolean(backgroundKey) && Boolean(backgroundValid),
+        snapshot: () => buildDraftData(),
+      },
+      {
+        id: 3,
+        name: "Classe",
+        canProceed: Boolean(effKlassId) && areClassChoicesComplete(),
+        snapshot: () => buildDraftData(),
+      },
+      {
+        id: 4,
+        name: "Alinhamento",
+        canProceed: Boolean(alignmentKey),
+        snapshot: () => buildDraftData(),
+      },
+      {
+        id: 5,
+        name: "Equipamentos",
+        canProceed: true,
+        snapshot: () => buildDraftData(),
+      },
+      {
+        id: 6,
+        name: "Finalizar",
+        canProceed: Boolean(name.trim()),
+        snapshot: () => buildDraftData(),
+      },
+    ],
+    [
+      wizardState.race?.raceId,
+      raceReady,
+      attributesAssigned,
+      backgroundKey,
+      backgroundValid,
+      effKlassId,
+      areClassChoicesComplete,
+      alignmentKey,
+      name,
+      buildDraftData,
+    ]
+  );
+
+  const wizard = useWizard(stepDescriptors, initialWizardStep);
+  const {
+    steps: wizardSteps,
+    currentStepId: wizardCurrentStepId,
+    currentStepIndex: wizardCurrentStepIndex,
+    isFirstStep: wizardIsFirstStep,
+    isLastStep: wizardIsLastStep,
+    goToStep: goToWizardStep,
+    nextStep: advanceWizardStep,
+    previousStep: retreatWizardStep,
+    nextStepMeta,
+  } = wizard;
+
+  // Lazy-load catalogs per wizard step (now that wizardCurrentStepId exists)
+  // Steps: 1=Raça, 2=Background, 3=Classe
+  const raceCat = useRaceCatalogs(true); // race data is lightweight and used early
+  const bgCat   = useBackgroundCatalog(wizardCurrentStepId >= 2);
+  const classCat= useClassCatalogs(wizardCurrentStepId >= 3);
+
+  // Values synced into local state below
+
+  // Bridge hook results into local state so early consumers see defined vars
+  useEffect(() => {
+    try {
+      setRaces(raceCat.races || []);
+      setSubRaces(raceCat.subRaces || []);
+      setRaceRules(raceCat.raceRules || {});
+      setRaceTraitDefs(raceCat.raceTraitDefs || {});
+    } catch(_) {}
+  }, [raceCat.races, raceCat.subRaces, raceCat.raceRules, raceCat.raceTraitDefs]);
+
+  useEffect(() => {
+    try {
+      setKlasses(classCat.klasses || []);
+      setSubKlasses(classCat.subKlasses || []);
+      setClassRules(classCat.classRules || {});
+      setClassDicts(classCat.classDicts || {});
+    } catch(_) {}
+  }, [classCat.klasses, classCat.subKlasses, classCat.classRules, classCat.classDicts]);
+
+  useEffect(() => {
+    try {
+      setBackgroundOptions(bgCat.backgroundOptions || []);
+      setBackgroundIndexMap(bgCat.backgroundIndexMap || {});
+    } catch(_) {}
+  }, [bgCat.backgroundOptions, bgCat.backgroundIndexMap]);
+
+  // Utility: subclass name by id (after catalogs available)
+  const subclassNameById = useCallback((id) => {
+    if (!id) return '';
+    try {
+      const hit = (subclassesForKlass || []).find(s => String(s.id) === String(id));
+      if (hit && hit.name) return hit.name;
+    } catch(_) {}
+    try {
+      const klass = klasses.find(k => String(k.id) === String(effKlassId));
+      const ruleKey = (klass?.api_index) || CLASS_NAME_MAP[klass?.name] || '';
+      const opts = (classRules[ruleKey]?.subclass?.options) || {};
+      const o = Object.values(opts).find(x => String(x.id) === String(id));
+      return o?.name || '';
+    } catch(_) { return ''; }
+  }, [subclassesForKlass, klasses, effKlassId, classRules]);
+
+  const handleStepChange = useCallback(
+    (stepId) => {
+      goToWizardStep(stepId);
+    },
+    [goToWizardStep]
+  );
+
+  const stepDescriptorMap = useMemo(() => {
+    const map = new Map();
+    stepDescriptors.forEach((step) => map.set(step.id, step));
+    return map;
+  }, [stepDescriptors]);
+
+  const currentStepConfig = stepDescriptorMap.get(wizardCurrentStepId) || stepDescriptors[0];
+
+  const mergeDraftData = (base, delta) => {
+    const d = { ...(base || {}) };
+    Object.entries(delta || {}).forEach(([k, v]) => { d[k] = v; });
+    return d;
   };
 
-  const canGoNext = () => {
-    switch (step) {
-      case 1: return raceId && raceReady;
-      case 2: return backgroundKey && backgroundValid;
-      case 3: return klassId && areClassChoicesComplete();
-      case 4: return alignmentKey;
-      case 5: return true; // Equipment step
-      case 6: return name.trim();
-      default: return false;
-    }
-  };
+  // APIs needed by draft/save flows (ensure defined before callbacks that depend on them)
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const draftSaveTimerRef = useRef(null);
+  const generalDraftTimerRef = useRef(null);
+  const lastDraftSignatureRef = useRef(null);
   const { role } = useAuth();
   const charactersApi = useMemo(
     () => crudFor("characters", role),
@@ -281,80 +645,293 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
   const sheetsApi = useMemo(() => crudFor("sheets", role), [role]);
   const sheetKlassesApi = useMemo(() => crudFor("sheet_klasses", role), [role]);
   const sheetItemsApi = useMemo(() => crudFor("sheet_items", role), [role]);
-  const publicRacesApi = useMemo(() => crudFor("races", "public"), []);
-  const publicSubRacesApi = useMemo(() => crudFor("sub_races", "public"), []);
-  const publicKlassesApi = useMemo(() => crudFor("klasses", "public"), []);
-  const publicSubKlassesApi = useMemo(() => crudFor("sub_klasses", "public"), []);
+
+  // General auto-save for draft_data whenever wizard state changes (rolled scores, per-level picks, etc.)
+  useEffect(() => {
+    const data = buildDraftData();
+    const signature = JSON.stringify({ step: wizardCurrentStepId, data });
+    if (lastDraftSignatureRef.current === signature) return;
+    if (generalDraftTimerRef.current) {
+      clearTimeout(generalDraftTimerRef.current);
+      generalDraftTimerRef.current = null;
+    }
+    generalDraftTimerRef.current = setTimeout(async () => {
+      try {
+        const payload = { status: 'draft', current_step: wizardCurrentStepId, draft_data: data };
+        if (groupId) payload.group_id = Number(groupId);
+        if (draftCharId) {
+          await charactersApi.update(draftCharId, payload);
+        } else {
+          const res = await charactersApi.create(payload);
+          const chr = res.character || res;
+          if (chr && chr.id) setDraftCharId(chr.id);
+        }
+        lastDraftSignatureRef.current = signature;
+      } catch (_) {
+        // ignore auto-save errors
+      }
+    }, 700);
+    return () => {
+      if (generalDraftTimerRef.current) clearTimeout(generalDraftTimerRef.current);
+      generalDraftTimerRef.current = null;
+    };
+  }, [buildDraftData, wizardCurrentStepId, draftCharId, charactersApi]);
+
+  const saveDraft = useCallback(
+    async (nextStepId, snapshotOverrideId = null) => {
+      try {
+        const newDraft = buildDraftData();
+        const payload = {
+          status: 'draft',
+          current_step: nextStepId,
+          draft_data: newDraft,
+        };
+        if (groupId) payload.group_id = Number(groupId);
+        // Persist basic identity fields early when available
+        if (name && String(name).trim().length > 0) {
+          payload.name = String(name).trim();
+        }
+        const bgName = (backgroundName || background || '').trim();
+        if (bgName.length > 0) {
+          payload.background = bgName;
+        }
+        if (draftCharId) {
+          await charactersApi.update(draftCharId, payload);
+          setDraftData(newDraft);
+        } else {
+          const res = await charactersApi.create(payload);
+          const chr = res.character || res;
+          setDraftCharId(chr.id);
+          setDraftData(newDraft);
+        }
+      } catch (e) {
+        console.warn('Falha ao salvar rascunho:', e);
+      }
+    },
+    [
+      wizardCurrentStepId,
+      buildDraftData,
+      draftData,
+      draftCharId,
+      charactersApi,
+    ]
+  );
+
+  // Auto-save identity fields on step 6 when user types name/background
+  useEffect(() => {
+    if (wizardCurrentStepId !== 6) return;
+    if (draftSaveTimerRef.current) {
+      clearTimeout(draftSaveTimerRef.current);
+      draftSaveTimerRef.current = null;
+    }
+    draftSaveTimerRef.current = setTimeout(async () => {
+      try {
+        const bgName = (backgroundName || background || '').trim();
+        if ((name && name.trim().length > 0) || bgName.length > 0) {
+          // Persist as draft at current step so the name is not lost
+          const payload = {
+            status: 'draft',
+            current_step: 6,
+            draft_data: buildDraftData(),
+          };
+          if (groupId) payload.group_id = Number(groupId);
+          if (name && name.trim().length > 0) payload.name = name.trim();
+          if (bgName.length > 0) payload.background = bgName;
+          if (draftCharId) {
+            await charactersApi.update(draftCharId, payload);
+          } else {
+            const res = await charactersApi.create(payload);
+            const chr = res.character || res;
+            if (chr && chr.id) setDraftCharId(chr.id);
+          }
+        }
+      } catch (_) {}
+    }, 600);
+    return () => {
+      if (draftSaveTimerRef.current) clearTimeout(draftSaveTimerRef.current);
+      draftSaveTimerRef.current = null;
+    };
+  }, [wizardCurrentStepId, name, backgroundName, background, draftCharId, charactersApi, buildDraftData]);
+
+  // Salvar rascunho específico do nível atual (classe), sem avançar a etapa do wizard
+  const saveLevelDraft = useCallback(async () => {
+    await saveDraft(wizardCurrentStepId, 3);
+  }, [saveDraft, wizardCurrentStepId]);
+
+  const currentStepCanProceed = Boolean(currentStepConfig?.canProceed);
+
+  const handleNext = useCallback(async () => {
+    if (!currentStepCanProceed) return;
+    if (wizardIsLastStep) {
+      const form = document.querySelector('form');
+      if (form) form.requestSubmit();
+      return;
+    }
+    const nextMeta = nextStepMeta;
+    const nextStepId = nextMeta?.id ?? wizardCurrentStepId;
+    await saveDraft(nextStepId);
+    if (nextMeta) {
+      advanceWizardStep();
+    }
+  }, [
+    currentStepCanProceed,
+    wizardIsLastStep,
+    nextStepMeta,
+    wizardCurrentStepId,
+    saveDraft,
+    advanceWizardStep,
+  ]);
+
+  const handleBack = useCallback(() => {
+    if (!wizardIsFirstStep) {
+      retreatWizardStep();
+    }
+  }, [wizardIsFirstStep, retreatWizardStep]);
 
   useEffect(() => {
+    setError(null);
     if (isEdit) {
-      setName(character.name);
-      setBackground(character.background);
-      setGroupId(character.group_id);
-      setUserId(character.user_id);
+      setDraftCharId(character?.id || null);
+      setName(character?.name || "");
+      setBackground(character?.background || "");
+      setGroupId(character?.group_id || "");
+      setUserId(character?.user_id || "");
+      const status = String(character?.status || '');
+      if (status === 'draft' && character?.draft_data) {
+        try {
+          const d = character.draft_data || {};
+          setDraftData(d);
+          // New schema support
+          if (d.race || d.background || d.klass || d.equipment || d.meta) {
+            const r = d.race || {};
+            setRaceIdW(r.raceId || "");
+            setSubRaceIdW(r.subRaceId || "");
+            setAbilityMethodW(r.abilityMethod || 'roll_4d6');
+            setRolledScoresW(Array.isArray(r.rolledScores) ? r.rolledScores : []);
+            if (r.attributes) {
+              setStr(r.attributes.str ?? 10);
+              setDex(r.attributes.dex ?? 10);
+              setCon(r.attributes.con ?? 10);
+              setIntA(r.attributes.int ?? 10);
+              setWis(r.attributes.wis ?? 10);
+              setCha(r.attributes.cha ?? 10);
+            }
+            if (r.raceChoices) setRaceChoicesW(r.raceChoices);
+            dispatchWizard({ type:'PATCH_RACE', payload: r });
+
+            const bg = d.background || {};
+            setBackgroundKey(bg.backgroundKey || "");
+            setBackgroundName(bg.backgroundName || "");
+            setBackgroundProfs(bg.backgroundProfs || []);
+            setBackgroundChoices(bg.backgroundChoices || {});
+            setBackgroundData(bg.backgroundData || null);
+            dispatchWizard({ type:'PATCH_BACKGROUND', payload: bg });
+
+            const k = d.klass || {};
+            setKlassIdW(k.klassId || "");
+            setLevelW(Number(k.level || 1));
+            setClassSubclassIdW(k.classSubclassId || null);
+            setClassSkillPicksW(k.classSkillPicks || []);
+            setClassInstrumentPicksW(k.classInstrumentPicks || []);
+            setClassFightingStyleW(k.classFightingStyle || null);
+            setPickedCantripsW(k.pickedCantrips || []);
+            setPickedSpellsW(k.pickedSpells || []);
+            setClassPicksByLevelW(k.classPicksByLevel || {});
+            dispatchWizard({ type:'PATCH_KLASS', payload: k });
+
+            const eq = d.equipment || {};
+            dispatchWizard({ type:'PATCH_EQUIPMENT', payload: { equipmentPicks: eq.equipmentPicks || [] } });
+            dispatchWizard({ type:'PATCH_EQUIPMENT', payload: eq });
+
+            const m = d.meta || {};
+            if (m.alignmentKey) setAlignmentKey(m.alignmentKey);
+            if (m.name) setName(m.name);
+            dispatchWizard({ type:'PATCH_META', payload: m });
+          }
+          // Legacy schema fallback
+          else if (d.step1) {
+            setRaceIdW(d.step1.raceId || "");
+            setSubRaceIdW(d.step1.subRaceId || "");
+            setAbilityMethodW(d.step1.abilityMethod || 'roll_4d6');
+            setRolledScoresW(Array.isArray(d.step1.rolledScores) ? d.step1.rolledScores : []);
+            if (d.step1.attributes) {
+              setStr(d.step1.attributes.str ?? 10);
+              setDex(d.step1.attributes.dex ?? 10);
+              setCon(d.step1.attributes.con ?? 10);
+              setIntA(d.step1.attributes.int ?? 10);
+              setWis(d.step1.attributes.wis ?? 10);
+              setCha(d.step1.attributes.cha ?? 10);
+            }
+            if (d.step1.raceChoices) setRaceChoicesW(d.step1.raceChoices);
+          }
+          if (d.step2) {
+            setBackgroundKey(d.step2.backgroundKey || "");
+            setBackgroundName(d.step2.backgroundName || "");
+            setBackgroundProfs(d.step2.backgroundProfs || []);
+            setBackgroundChoices(d.step2.backgroundChoices || {});
+            setBackgroundData(d.step2.backgroundData || null);
+          }
+          if (d.step3) {
+            setKlassIdW(d.step3.klassId || "");
+            setLevelW(Number(d.step3.level || 1));
+            setClassSubclassIdW(d.step3.classSubclassId || null);
+            setClassSkillPicksW(d.step3.classSkillPicks || []);
+            setClassInstrumentPicksW(d.step3.classInstrumentPicks || []);
+            setClassFightingStyleW(d.step3.classFightingStyle || null);
+            setPickedCantripsW(d.step3.pickedCantrips || []);
+            setPickedSpellsW(d.step3.pickedSpells || []);
+            setClassPicksByLevelW(d.step3.classPicksByLevel || {});
+          }
+          if (d.step4) {
+            setAlignmentKey(d.step4.alignmentKey || "");
+          }
+          if (d.step5) {
+            dispatchWizard({ type:'PATCH_EQUIPMENT', payload: { equipmentPicks: d.step5.equipmentPicks || [] } });
+          }
+        } catch (_) {}
+      } else {
+        try {
+          const sh = character.sheet || null;
+          if (sh) {
+            setRaceIdW(sh.race_id || "");
+            setSubRaceIdW(sh.sub_race_id || "");
+            setStr(sh.str || 10); setDex(sh.dex || 10); setCon(sh.con || 10); setIntA(sh.int || 10); setWis(sh.wis || 10); setCha(sh.cha || 10);
+            const meta = sh.metadata || {};
+            if (meta.background_key) setBackgroundKey(meta.background_key);
+            if (meta.background) setBackgroundName(meta.background);
+            if (meta.background_proficiencies) setBackgroundProfs(meta.background_proficiencies);
+            if (meta.alignment?.index) setAlignmentKey(meta.alignment.index);
+            if (meta.class_choices?.per_level) setClassPicksByLevelW(meta.class_choices.per_level);
+            if (meta.class_summary?.current_level) setLevelW(Number(meta.class_summary.current_level));
+            const mk = character.main_class || {};
+            if (mk.id) setKlassIdW(mk.id);
+            if (mk.subclass?.id) setClassSubclassIdW(mk.subclass.id);
+          }
+        } catch (_) {}
+      }
     } else {
+      setDraftCharId(null);
       setName("");
       setBackground("");
       setGroupId("");
       setUserId("");
-      setRaceId("");
-      setSubRaceId("");
-      setKlassId("");
-      setSubKlassId("");
-      setLevel(1);
+      setRaceIdW("");
+      setSubRaceIdW("");
+      setKlassIdW("");
+      setLevelW(1);
       setStr(10); setDex(10); setCon(10); setIntA(10); setWis(10); setCha(10);
+      setDraftData({});
     }
-    setError(null);
-  }, [isOpen, character]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [ { races }, { sub_races }, { klasses }, { sub_klasses }, { race_rules }, crIndex, bgIndex ] = await Promise.all([
-          publicRacesApi.getAll(),
-          publicSubRacesApi.getAll(),
-          publicKlassesApi.getAll(),
-          publicSubKlassesApi.getAll(),
-          apiClient.get('/api/v1/public/race_rules').then(r=>r),
-          apiClient.get('/api/v1/public/class_rules').then(r=>r),
-          apiClient.get('/api/v1/public/backgrounds').then(r=>r).catch(()=>({ backgrounds: {} })),
-        ]);
-        setRaces(races);
-        setSubRaces(sub_races);
-        setKlasses(klasses);
-        setSubKlasses(sub_klasses);
-        setRaceRules(race_rules || {});
-        setClassRules(crIndex.class_rules || {});
-        setClassDicts(crIndex.dictionaries || { instruments: [], fighting_styles: [], skills_all: [] });
-        try {
-          const bgs = bgIndex.backgrounds || {};
-          setBackgroundIndexMap(bgs);
-          const arr = Object.values(bgs).map((v)=> ({
-            id: v.id,
-            name: v.name,
-            index: v.api_index || v.index || v.id,
-            skills: v.skills || [],
-            tools: v.tools || [],
-            desc: v.desc || v.description || '',
-          }));
-          setBackgroundOptions(arr);
-        } catch (e) {
-          setBackgroundOptions([]);
-        }
-      } catch (err) {
-        console.error('Falha ao carregar listas públicas', err);
-      }
-    })();
-  }, []);
+  }, [isOpen, character, initialStep]);
 
   // Carregar cantrips de mago para Alto Elfo (sempre disponíveis)
   useEffect(() => {
     (async () => {
       try {
         if (!klasses?.length) return;
-        const wizard = klasses.find(k => k.api_index === 'wizard');
-        if (!wizard) return;
-        const { spells = [] } = await apiClient.get(`/api/v1/public/spells?klass_id=${wizard.id}`);
+        const wizardKlass = klasses.find(k => k.api_index === 'wizard');
+        if (!wizardKlass) return;
+        const { spells = [] } = await apiClient.get(`/api/v1/public/spells?klass_id=${wizardKlass.id}`);
         const cantrips = spells.filter(s => (s.level || 0) === 0);
         setWizardCantripOptions(cantrips);
       } catch (e) {
@@ -363,108 +940,34 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
     })();
   }, [klasses]);
 
-  // Load spells for class + class levels when class/level changes
-  useEffect(() => {
-    (async () => {
-      try {
-        if (!klassId) return;
-        const [{ spells = [] }, { class_levels = [] }] = await Promise.all([
-          apiClient.get(`/api/v1/public/spells?klass_id=${klassId}`),
-          apiClient.get(`/api/v1/public/klasses/${klassId}/levels`),
-        ]);
-        setKlassLevels(class_levels || []);
-        setSpellCatalog(spells || []);
-        const cantrips = (spells || [])
-          .filter(s => (s.level || 0) === 0)
-          .map(s => ({ id: s.id, name: s.name, level: s.level || 0 }));
-        const leveled = (spells || [])
-          .filter(s => (s.level || 0) > 0)
-          .map(s => ({ id: s.id, name: s.name, level: s.level || 0 }));
-        setCantripOptions(cantrips);
-        setSpellOptions(leveled);
-      } catch (err) {
-        console.error('Falha ao carregar spells/levels', err);
-      }
-    })();
-  }, [klassId]);
+  // Spells and class levels are provided by useSpellCatalog(klassId, classSubclassId, level)
 
   // Initialize classPicksByLevel when class or level changes
   useEffect(() => {
-    if (!klassId || !level) return;
-    
-    setClassPicksByLevel(prev => {
-      const updated = { ...prev };
-      const currentLevel = Number(level) || 1;
-      
-      // Ensure all levels from 1 to currentLevel have basic structure
-      for (let i = 1; i <= currentLevel; i++) {
-        if (!updated[i]) {
-          updated[i] = {
-            skills: [],
-            instruments: [],
-            fighting_style: null,
-            cantrips: [],
-            spells: [],
-            asi: { choices: {} },
-            subclass_id: null,
-            prepared: []
-          };
-        }
-      }
-      
-      console.log('🔧 Initialized classPicksByLevel for levels 1 to', currentLevel, ':', updated);
-      return updated;
-    });
-  }, [klassId, level]);
+    if (!effKlassId || !effLevel) return;
 
-  // Load alignments list (backend then external API)
-  useEffect(() => {
-    (async () => {
-      try {
-        let list = [];
-        try {
-          const resp = await apiClient.get('/api/v1/public/alignments');
-          const map = resp.alignments || {};
-          list = Object.values(map).map(a => ({ index: a.index || a.id, name: a.name || a.title || a.id, desc: a.desc || a.description || '' }));
-        } catch (_) {}
-        if (!Array.isArray(list) || list.length === 0) {
-          const res = await fetch('https://www.dnd5eapi.co/api/alignments');
-          const data = await res.json();
-          list = (data.results || []).map(a => ({ index: a.index, name: a.name, url: a.url }));
-        }
-        setAlignments(list);
-        const mapBy = {};
-        list.forEach(a => { mapBy[a.index] = a; });
-        setAlignmentMap(mapBy);
-      } catch (e) {
-        console.error('Falha ao carregar alinhamentos', e);
+    const source = (wizardState.klass?.classPicksByLevel || {});
+    const updated = { ...source };
+    const currentLevel = Number(effLevel) || 1;
+    for (let i = 1; i <= currentLevel; i++) {
+      if (!updated[i]) {
+        updated[i] = {
+          skills: [],
+          instruments: [],
+          fighting_style: null,
+          cantrips: [],
+          spells: [],
+          asi: { choices: {} },
+          subclass_id: null,
+          prepared: []
+        };
       }
-    })();
-  }, []);
+    }
+      // debug: Initialized classPicksByLevel suppressed in production
+    setClassPicksByLevelW(updated);
+  }, [effKlassId, effLevel]);
 
-  // Load alignment details when selected
-  useEffect(() => {
-    (async () => {
-      if (!alignmentKey) { setAlignmentDetails(null); return; }
-      const cached = alignmentMap[alignmentKey];
-      if (cached?.desc) { setAlignmentDetails(cached); return; }
-      try {
-        try {
-          const res = await apiClient.get(`/api/v1/public/alignments/${alignmentKey}`);
-          const a = res.alignment || res;
-          if (a && (a.index || a.id)) {
-            setAlignmentDetails({ index: a.index || a.id, name: a.name || a.title, desc: a.desc || a.description || '' });
-            return;
-          }
-        } catch (_) {}
-        const res = await fetch(`https://www.dnd5eapi.co/api/alignments/${alignmentKey}`);
-        const data = await res.json();
-        setAlignmentDetails({ index: data.index, name: data.name, desc: data.desc });
-      } catch (e) {
-        setAlignmentDetails({ index: alignmentKey, name: cached?.name || alignmentKey, desc: '' });
-      }
-    })();
-  }, [alignmentKey]);
+  // Alignment data is provided by useAlignmentOptions(alignmentKey)
 
   const spellDict = useMemo(() => {
     const dict = {};
@@ -476,108 +979,95 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
     return dict;
   }, [spellCatalog, cantripOptions, spellOptions, wizardCantripOptions]);
 
-  // Cálculo de bônus de atributos a partir das regras (inclui escolhas de Meio‑Elfo e Humano Variante)
-  const abilityKey = { STR:'str', DEX:'dex', CON:'con', INT:'int', WIS:'wis', CHA:'cha' };
-  const normalizeAbility = (ab) => {
-    if (typeof ab === 'string') return ab;
-    if (ab && typeof ab === 'object') {
-      if (ab.id) return String(ab.id);
-      if (ab.ability) return String(ab.ability);
-    }
-    return String(ab || '');
-  };
-  const toAbilityKey = (ab) => {
-    const token = normalizeAbility(ab).toUpperCase();
-    return abilityKey[token] || token.toLowerCase();
-  };
-  const addBonus = (map, ab, amt) => {
-    const k = toAbilityKey(ab);
-    if (!k) return;
-    map[k] = (map[k]||0) + amt;
-  };
-  const computeAbilityBonuses = (rule, subRuleId, picks, raceName, subRaceName) => {
-    const b = {};
-    if (!rule) return b;
-    const sub = subRuleId ? (rule.subraces||{})[subRuleId] : null;
-    const collect = (node) => { if(node?.type==='fixed'){ (node.increases||[]).forEach(ai=>addBonus(b, ai.ability, ai.amount)); } };
-    // Evitar aplicar o bônus base de Humano (+1 em todos) quando for Variante
-    const isHumanVariant = rule.id === 'human' && subRuleId === 'variant';
-    if (!isHumanVariant) {
-      collect(rule.ability);
-    }
-    if (sub?.ability) collect(sub.ability);
-    // Meio‑Elfo escolhas +1 em 2 habilidades
-    if (rule.id === 'half_elf' && Array.isArray(picks?.halfElfAbilityPicks)) {
-      picks.halfElfAbilityPicks.forEach(a => addBonus(b, a, 1));
-    }
-    // Humano Variante (PHB): +1 em dois atributos escolhidos OU conforme talento escolhido
-    if (rule.id === 'human' && subRuleId === 'variant') {
-      const hv = picks?.variantHumanASI || null;
-      try {
-        if (hv && hv.mode === 'attributes') {
-          const attrs = Array.isArray(hv.attributes) ? hv.attributes : [];
-          if (attrs.length === 1) { addBonus(b, attrs[0], 2); }
-          else { attrs.slice(0,2).forEach(a => addBonus(b, a, 1)); }
-        } else if (hv && hv.mode === 'feat') {
-          const featId = hv.featId || hv.featName || null;
-          if (featId) {
-            const bonuses = getFeatBonuses(featId, hv.choices || {});
-            Object.entries(bonuses).forEach(([k, v]) => { if (v) addBonus(b, k, v); });
-          }
-        }
-      } catch (_) {}
-    }
-    // Compat: seeds PT‑BR sem rule para meio‑orc/gnomo base
-    const rn = (raceName||'').toLowerCase();
-    const srn = (subRaceName||'').toLowerCase();
-    if (!rule || !rule.id) {
-      if (rn==='meio-orc'){ addBonus(b,'STR',2); addBonus(b,'CON',1); }
-      if (rn==='gnomo'){ addBonus(b,'INT',2); if (srn.includes('rocha')) addBonus(b,'CON',1); if (srn.includes('floresta')) addBonus(b,'DEX',1); }
-    }
-    return b;
-  };
+  // Cálculo de bônus de atributos a partir das regras (import util)
+  const computeAbilityBonuses = computeAbilityBonusesUtil;
 
-  const selectedRace = races.find(r=>r.id===raceId);
-  const selectedSubRace = subRaces.find(sr=>sr.id===subRaceId);
-  // Map PT-BR name to rule id keys
-  const RULE_NAME_MAP = {
-    'Anão':'dwarf','Elfo':'elf','Halfling':'halfling','Humano':'human','Draconato':'dragonborn','Gnomo':'gnome','Meio-Elfo':'half_elf','Meio-Orc':'half_orc','Tiefling':'tiefling'
-  };
-  const ruleId = RULE_NAME_MAP[selectedRace?.name] || null;
-  const rule = ruleId ? raceRules[ruleId] : null;
-  const subRuleId = (()=>{
-    if(!rule || !selectedSubRace) return null;
-    const name = (selectedSubRace.name||'').toLowerCase();
-    if(ruleId==='dwarf') return name.includes('montanha')? 'mountain' : name.includes('colina')? 'hill': null;
-    if(ruleId==='elf') return name.includes('alto')? 'high' : name.includes('floresta')? 'wood' : name.includes('negro')? 'drow' : null;
-    if(ruleId==='gnome') return name.includes('floresta')? 'forest' : name.includes('rocha')? 'rock' : null;
-    if(ruleId==='human') return name.includes('variante')? 'variant': null;
-    if(ruleId==='halfling') return name.includes('leves')? 'lightfoot' : name.includes('robusto')? 'stout' : null;
-    return null;
-  })();
+  
   // Get bonuses from feats based on actual choices
   const getFeatBonuses = (featName, choices = {}) => {
     const featMap = {
       'observador': { wis: 1, int: 1 },
       'duravel': { con: 1 },
-      'atirador_agucado': { dex: 1 },
+      'resistente': { con: 1 },
       'sentinela': { str: 1, con: 1 },
       'resiliente': choices.ability ? { [String(choices.ability).toLowerCase()]: 1 } : {},
       'atleta': choices.ability ? { [String(choices.ability).toLowerCase()]: 1 } : {},
+      'especialista_em_briga': choices.ability ? { [String(choices.ability).toLowerCase()]: 1 } : {},
       'especialista_em_armas': choices.ability ? { [choices.ability]: 1 } : {},
       'magico_iniciante': choices.ability ? { [choices.ability]: 1 } : {},
       'especialista_em_armadura': { str: 1 },
-      'especialista_em_escudo': choices.ability ? { [choices.ability]: 1 } : {}
+      'especialista_em_escudo': choices.ability ? { [choices.ability]: 1 } : {},
+      // Novos ids normalizados conforme backend
+      'protecao_leve': { str: 1 },
+      'protecao_moderada': { str: 1 },
+      'protecao_pesada': { str: 1 },
+      'maestria_em_armadura_pesada': { str: 1 },
+      'ator': { cha: 1 },
+      'poliglota': { int: 1 }
     };
     return featMap[featName] || {};
   };
+
+  // Regras especiais de feats relevantes para o preview (HP/Proficiências)
+  const getFeatRuleEffects = (featId, choices = {}) => {
+    const out = { hpPerLevel: 0, armorCats: [], weaponCats: [], speedFtBonus: 0 };
+    switch (String(featId)) {
+      case 'robusto':
+        // +2 PV por nível (retroativo)
+        out.hpPerLevel = 2;
+        break;
+      case 'mobilidade':
+        // +10 ft de deslocamento (PHB Mobile)
+        out.speedFtBonus = 10;
+        break;
+      case 'protecao_leve':
+        out.armorCats.push('light');
+        break;
+      case 'protecao_moderada':
+        out.armorCats.push('medium');
+        out.armorCats.push('shields');
+        break;
+      case 'protecao_pesada':
+        out.armorCats.push('heavy');
+        break;
+      case 'especialista_em_armas': {
+        const picked = Array.isArray(choices?.weapons) ? choices.weapons : [];
+        if (picked.some((x)=> String(x?.id||x).includes('arma_marcial'))) out.weaponCats.push('martial');
+        if (picked.some((x)=> String(x?.id||x).includes('arma_simples'))) out.weaponCats.push('simple');
+        break;
+      }
+      default:
+        break;
+    }
+    return out;
+  };
+
+  // Agregar regras de todos os feats escolhidos até o nível atual
+  const aggregatedFeatRules = useMemo(() => {
+    const agg = { hpPerLevel: 0, armorCats: new Set(), weaponCats: new Set(), speedFtBonus: 0 };
+    try {
+      for (let i = 1; i <= Number(effLevel || 1); i++) {
+        const row = (effClassPicksByLevel || {})[i] || {};
+        const asi = row?.asi;
+        if (asi && asi.mode === 'feat' && (asi.featId || asi.featName)) {
+          const fid = asi.featId || asi.featName;
+          const eff = getFeatRuleEffects(fid, asi.choices || {});
+          agg.hpPerLevel += Number(eff.hpPerLevel || 0);
+          agg.speedFtBonus += Number(eff.speedFtBonus || 0);
+          (eff.armorCats || []).forEach((c)=> agg.armorCats.add(String(c)));
+          (eff.weaponCats || []).forEach((c)=> agg.weaponCats.add(String(c)));
+        }
+      }
+    } catch (_) {}
+    return agg;
+  }, [effClassPicksByLevel, effLevel]);
 
   // Aggregate ASI bonuses from per-level picks up to current level
   const ASI_MAP = { STR: 'str', DEX: 'dex', CON: 'con', INT: 'int', WIS: 'wis', CHA: 'cha' };
   const asiBonuses = useMemo(() => {
     const acc = { str:0, dex:0, con:0, int:0, wis:0, cha:0 };
-    for (let i = 1; i <= Number(level || 1); i++) {
-      const p = classPicksByLevel[i];
+    for (let i = 1; i <= Number(effLevel || 1); i++) {
+      const p = (effClassPicksByLevel || {})[i];
       const asi = p?.asi;
       if (!asi) continue;
       if (asi.mode === 'attributes' && Array.isArray(asi.attributes)) {
@@ -599,37 +1089,40 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
       }
     }
     return acc;
-  }, [classPicksByLevel, level]);
-  const raceBonuses = computeAbilityBonuses(rule, subRuleId, raceChoices, selectedRace?.name, selectedSubRace?.name);
+  }, [effClassPicksByLevel, effLevel]);
+  const raceBonuses = computeAbilityBonuses(rule, subRuleId, (wizardState.race?.raceChoices || {}), selectedRace?.name, selectedSubRace?.name);
   const eff = (base, key) => {
     const raw = (Number(base)||0) + (raceBonuses[key]||0) + (asiBonuses[key]||0);
     return raw;
   };
 
+  // Preview helpers (to approximate GenericClassPage header)
+  const abilityMod = (score) => Math.floor(((Number(score)||10) - 10) / 2);
+
   // Collect cantrips and spells from feats
   const featCantrips = useMemo(() => {
     const cantrips = [];
-    for (let i = 1; i <= Number(level || 1); i++) {
-      const p = classPicksByLevel[i];
+    for (let i = 1; i <= Number(effLevel || 1); i++) {
+      const p = (effClassPicksByLevel || {})[i];
       const asi = p?.asi;
       if (asi && asi.mode === 'feat' && asi.choices?.cantrips) {
         cantrips.push(...asi.choices.cantrips);
       }
     }
     return cantrips;
-  }, [classPicksByLevel, level]);
+  }, [effClassPicksByLevel, effLevel]);
 
   const featSpells = useMemo(() => {
     const spells = [];
-    for (let i = 1; i <= Number(level || 1); i++) {
-      const p = classPicksByLevel[i];
+    for (let i = 1; i <= Number(effLevel || 1); i++) {
+      const p = (effClassPicksByLevel || {})[i];
       const asi = p?.asi;
       if (asi && asi.mode === 'feat' && asi.choices?.spells) {
         spells.push(...asi.choices.spells);
       }
     }
     return spells;
-  }, [classPicksByLevel, level]);
+  }, [effClassPicksByLevel, effLevel]);
 
   // Build maps to lookup spells by name across loaded catalogs
   const spellByName = useMemo(() => {
@@ -643,70 +1136,103 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
   }, [wizardCantripOptions, cantripOptions, spellOptions, spellCatalog]);
 
   // Race innate spells (including subrace), filtered by current level
-  const raceInnateByLevel = useMemo(() => {
-    const list = [];
-    if (rule) {
-      const sub = subRuleId ? (rule.subraces || {})[subRuleId] : null;
-      const merged = [ ...(rule.innateSpells || []), ...((sub && sub.innateSpells) || []) ];
-      merged.forEach((entry) => {
-        if (!entry) return;
-        const reqLvl = Number(entry.level || 1);
-        if (Number(level || 1) < reqLvl) return;
-        (entry.spells || []).forEach((nm) => {
-          const found = spellByName.get(String(nm).toLowerCase());
-          if (found) list.push({ id: found.id, name: `${found.name} (Raça)`, level: found.level || 0 });
-          else list.push({ id: `race:${String(nm).toLowerCase()}`, name: `${nm} (Raça)`, level: 0 });
-        });
-      });
-    }
-    // dedup by id
-    const seen = new Set();
-    return list.filter((s) => { const id = s.id || s.name; if (seen.has(id)) return false; seen.add(id); return true; });
-  }, [rule, subRuleId, level, spellByName]);
-
-  // Extras de Raça reutilizáveis (cantrips e magias)
-  const raceCantripsExtraList = useMemo(() => {
-    const extra = [];
-    // Alto Elfo: 1 cantrip de mago escolhido
-    const cid = raceChoices?.highElfCantrip || null;
-    if (cid) {
-      const pools = [ wizardCantripOptions || [], cantripOptions || [], spellCatalog || [] ];
-      for (const list of pools) {
-        const found = (list || []).find(s => String(s.id) === String(cid));
-        if (found) { extra.push({ id: found.id, name: `${found.name} (Raça)`, level: found.level || 0 }); break; }
-      }
-    }
-    // Cantrips inatos da raça
-    raceInnateByLevel.filter(s => (s.level || 0) === 0).forEach(s => extra.push(s));
-    // dedup
-    const seen = new Set();
-    return extra.filter(s => { const id = s.id || s.name; if (seen.has(id)) return false; seen.add(id); return true; });
-  }, [raceChoices, wizardCantripOptions, cantripOptions, spellCatalog, raceInnateByLevel]);
-
-  const raceSpellsExtraList = useMemo(() => (
-    raceInnateByLevel.filter(s => (s.level || 0) > 0)
-  ), [raceInnateByLevel]);
+  const { raceInnateByLevel, raceCantripsExtraList, raceSpellsExtraList } = useRaceSpellExtras({
+    rule,
+    subRuleId,
+    level: effLevel,
+    spellByName,
+    picks: wizardState.race?.raceChoices,
+    wizardCantripOptions,
+    cantripOptions,
+    spellCatalog,
+  });
 
   // Feat selecionado pela Raça (Humano Variante) para evitar duplicidade em escolhas de classe
   const raceSelectedFeatId = useMemo(() => {
     try {
-      const hv = raceChoices?.variantHumanASI || null;
+      const hv = (wizardState.race?.raceChoices || {})?.variantHumanASI || null;
       if (hv && hv.mode === 'feat') return hv.featId || hv.featName || null;
       return null;
     } catch (_) { return null; }
-  }, [raceChoices]);
+  }, [wizardState.race]);
+
+  // Manobras escolhidas no talento da Raça (Humano Variante → Adepto Marcial)
+  const raceFeatManeuvers = useMemo(() => {
+    try {
+      const hv = (wizardState.race?.raceChoices || {})?.variantHumanASI || null;
+      if (!hv || hv.mode !== 'feat') return [];
+      const ch = hv.choices || {};
+      const arr = ch.maneuvers || ch.manobras || [];
+      return Array.isArray(arr) ? arr : [];
+    } catch(_) { return []; }
+  }, [wizardState.race]);
 
   // Classe selecionada
-  const selectedKlass = klasses.find(k=>String(k.id)===String(klassId));
+  const selectedKlass = klasses.find(k=>String(k.id)===String(effKlassId));
   const klassRuleId = selectedKlass?.api_index || (selectedKlass ? CLASS_NAME_MAP[selectedKlass.name] : null);
   const klassRule = klassRuleId ? classRules[klassRuleId] : null;
-  const canChooseSubclass = klassRule?.subclass?.choose_level && Number(level)>=Number(klassRule.subclass.choose_level);
+  const canChooseSubclass = klassRule?.subclass?.choose_level && Number(effLevel)>=Number(klassRule.subclass.choose_level);
   const classSkillsAll = (klassRule?.skill_proficiencies?.options === 'any') ? (classDicts.skills_all || []) : (klassRule?.skill_proficiencies?.options || []);
 
-  const [classSkillPicks, setClassSkillPicks] = useState([]);
-  const [classInstrumentPicks, setClassInstrumentPicks] = useState([]);
-  const [classFightingStyle, setClassFightingStyle] = useState(null);
-  const [classSubclassId, setClassSubclassId] = useState(null);
+  // Preview (now that selectedKlass exists)
+  const hpPreview = useMemo(() => {
+    try {
+      if (!selectedKlass || !effLevel) return null;
+      const hdStr = selectedKlass.hit_die || 'd8';
+      const hd = Number(String(hdStr).replace(/[^0-9]/g, '')) || 8;
+      const conMod = abilityMod(eff(con, 'con'));
+      const avg = Math.floor(hd / 2) + 1; // valor fixo padrão 5e
+      let total = hd + conMod; // nível 1: máximo do dado + CON
+      // Aplicar bônus de PV por nível vindos de feats (ex.: Robusto)
+      const hpPerLevel = Number(aggregatedFeatRules?.hpPerLevel || 0);
+      const upto = Number(effLevel) || 1;
+      for (let i = 2; i <= upto; i++) {
+        const row = (effClassPicksByLevel || {})[i] || {};
+        const hp = row?.hp_gain;
+        if (hp && typeof hp.total === 'number') {
+          total += Number(hp.total) || 0;
+        } else {
+          // Fallback: usar média + CON para níveis sem escolha (edições antigas)
+          total += (avg + conMod);
+        }
+        if (hpPerLevel) total += hpPerLevel;
+      }
+      return Math.max(1, total);
+    } catch (_) { return null; }
+  }, [selectedKlass, effLevel, con, raceBonuses, asiBonuses, effClassPicksByLevel, aggregatedFeatRules]);
+  const acPreview = useMemo(() => {
+    try {
+      if (!selectedKlass) return null;
+      const dexM = abilityMod(eff(dex,'dex'));
+      const wisM = abilityMod(eff(wis,'wis'));
+      const conM = abilityMod(eff(con,'con'));
+      let acUnarmored = 10 + dexM;
+      const kid = String(selectedKlass.api_index || '').toLowerCase();
+      if (kid === 'barbarian' || String(selectedKlass.name||'').toLowerCase().includes('bárbaro')) {
+        acUnarmored = 10 + dexM + conM;
+      } else if (kid === 'monk' || String(selectedKlass.name||'').toLowerCase().includes('monge')) {
+        acUnarmored = 10 + dexM + wisM;
+      }
+      // Consider equipped armor/shield from equipment picks
+      const picks = wizardState.equipment?.equipmentPicks || [];
+      const armor = picks.find(p => p.category === 'armor' && p.equipped);
+      const shield = picks.find(p => p.category === 'shield' && p.equipped);
+      if (armor && armor.props && armor.props.base != null) {
+        const base = Number(armor.props.base);
+        const allowDex = !!armor.props.dex_bonus;
+        const maxDex = (armor.props.max_bonus != null) ? Number(armor.props.max_bonus) : null;
+        const dexAdd = allowDex ? (maxDex != null ? Math.min(dexM, maxDex) : dexM) : 0;
+        let ac = base + dexAdd;
+        if (shield && shield.props?.ac_bonus) ac += Number(shield.props.ac_bonus);
+        return ac;
+      }
+      return acUnarmored;
+    } catch(_) { return null; }
+  }, [selectedKlass, dex, con, wis, raceBonuses, asiBonuses, wizardState.equipment?.equipmentPicks]);
+
+  // SheetPreviewHeader moved to its own component
+
+  // Hook replaces previous effect fetching subclass grants
 
   // Allowed equipment categories derived from class proficiencies
   const allowedArmorCats = useMemo(() => {
@@ -719,8 +1245,25 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
       if (t.includes('pesad') || t.includes('heavy')) out.add('heavy');
       if (t.includes('escudo') || t.includes('shield')) out.add('shields');
     });
+    // Merge subclass grants (generic)
+    (subclassArmorCats || []).forEach((c) => out.add(c));
+    // Merge feat-derived armor/shield proficiencies
+    try { (aggregatedFeatRules?.armorCats || new Set()).forEach((c)=> out.add(c)); } catch(_) {}
+    // Subclass grants (Clérigo Domínios) — melhor-esforço na criação
+    try {
+      const isCleric = String(klassRule?.id || '').toLowerCase() === 'cleric';
+      if (isCleric && effClassSubclassId && canChooseSubclass) {
+        const scName = String(subclassNameById(effClassSubclassId) || '').toLowerCase();
+        if (scName.includes('guerra') || scName.includes('war') || scName.includes('tempest')) {
+          out.add('heavy');
+        }
+        if (scName.includes('vida') || scName.includes('life')) {
+          out.add('heavy');
+        }
+      }
+    } catch(_) {}
     return Array.from(out);
-  }, [klassRule]);
+  }, [klassRule, effClassSubclassId, canChooseSubclass, subclassArmorCats, aggregatedFeatRules]);
   const allowedWeaponCats = useMemo(() => {
     const out = new Set();
     const wp = klassRule?.weapon_proficiencies || [];
@@ -729,64 +1272,31 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
       if (t.includes('armas simples') || t.includes('simple')) out.add('simple');
       if (t.includes('armas marciais') || t.includes('martial')) out.add('martial');
     });
+    // Merge subclass grants (generic)
+    (subclassWeaponCats || []).forEach((c) => out.add(c));
+    // Merge feat-derived weapon proficiencies
+    try { (aggregatedFeatRules?.weaponCats || new Set()).forEach((c)=> out.add(c)); } catch(_) {}
+    // Subclass grants (Clérigo Domínios: Guerra/Tempestade → marciais)
+    try {
+      const isCleric = String(klassRule?.id || '').toLowerCase() === 'cleric';
+      if (isCleric && effClassSubclassId && canChooseSubclass) {
+        const scName = String(subclassNameById(effClassSubclassId) || '').toLowerCase();
+        if (scName.includes('guerra') || scName.includes('war') || scName.includes('tempest')) {
+          out.add('martial');
+        }
+      }
+    } catch(_) {}
     return Array.from(out);
+  }, [klassRule, effClassSubclassId, canChooseSubclass, subclassWeaponCats, aggregatedFeatRules]);
+
+  const allowShortsword = useMemo(() => {
+    try {
+      const list = (klassRule?.weapon_proficiencies || []).map((v)=> String(v||'').toLowerCase());
+      return list.some((s) => s.includes('espada curta') || s.includes('shortsword'));
+    } catch(_) { return false; }
   }, [klassRule]);
 
-  const raceReady = (() => {
-    if (!ruleId) return false;
-    // idiomas obrigatórios (considera base + sub‑raça quando aplicável)
-    const subLangCount = (rule?.subraces && subRuleId && rule.subraces[subRuleId]?.languages?.choiceCount) ? rule.subraces[subRuleId].languages.choiceCount : 0;
-    const baseLangCount = rule?.languages?.choiceCount || 0;
-    const requiredLangCount = baseLangCount + subLangCount;
-    const selectedLangBase = Array.isArray(raceChoices?.extraLanguages) ? raceChoices.extraLanguages.length : 0;
-    const selectedLangHighElf = (ruleId === 'elf' && subRuleId === 'high' && raceChoices?.highElfExtraLanguage) ? 1 : 0;
-    const langOk = (selectedLangBase + selectedLangHighElf) >= requiredLangCount;
-
-    switch (ruleId) {
-      case 'dwarf':
-        return !!raceChoices?.dwarfTool && langOk;
-      case 'elf':
-        if (subRuleId === 'high') {
-          // Alto Elfo: exigir cantrip e 1 idioma extra
-          return !!raceChoices?.highElfCantrip && langOk;
-        }
-        return langOk;
-      case 'human':
-        if (subRuleId === 'variant') {
-          const hv = raceChoices?.variantHumanASI || null;
-          if (!hv || !hv.mode) return false;
-          if (hv.mode === 'attributes') {
-            const attrs = Array.isArray(hv.attributes) ? hv.attributes : [];
-            return attrs.length >= 1 && attrs.length <= 2 && langOk;
-          }
-          if (hv.mode === 'feat') {
-            const ch = hv.choices || {};
-            const featId = hv.featId || hv.featName || null;
-            if (!featId) return false;
-            if (String(featId) === 'resiliente') return (!!ch.ability && !!ch.saving_throws) && langOk;
-            if (String(featId) === 'atleta') return (!!ch.ability) && langOk;
-            if (String(featId) === 'magico_iniciante') {
-              const canOk = Array.isArray(ch.cantrips) && ch.cantrips.length === 2;
-              const spOk = Array.isArray(ch.spells) && ch.spells.length === 1;
-              const clazzOk = !!ch.klass_id || !!ch.cantrip_class || !!ch.spell_class;
-              return (!!ch.ability && clazzOk && canOk && spOk) && langOk;
-            }
-            return langOk;
-          }
-          return false;
-        }
-        return langOk;
-      case 'half_elf':
-        // 2 atributos (+1) que não incluem CHA, e 2 perícias
-        const picks = Array.isArray(raceChoices?.halfElfAbilityPicks) ? raceChoices.halfElfAbilityPicks : [];
-        const noCha = picks.every(p => (p?.id || p) !== 'CHA');
-        return picks.length === 2 && noCha && Array.isArray(raceChoices?.halfElfSkillPicks) && raceChoices.halfElfSkillPicks.length === 2 && langOk;
-      case 'dragonborn':
-        return !!raceChoices?.draconicAncestry && langOk;
-      default:
-        return langOk;
-    }
-  })();
+  
 
   // Racial skill proficiencies (fixed + chosen via race options)
   const raceSkillProfIds = useMemo(() => {
@@ -804,81 +1314,18 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
       const fixedSub = sub?.proficiencies?.skills?.fixed || [];
       fixedSub.forEach(addByName);
     }
-    if (Array.isArray(raceChoices?.halfElfSkillPicks)) raceChoices.halfElfSkillPicks.forEach(addByName);
-    if (raceChoices?.variantHumanSkill) addByName(raceChoices.variantHumanSkill);
+    const rc2 = wizardState.race?.raceChoices || {};
+    if (Array.isArray(rc2?.halfElfSkillPicks)) rc2.halfElfSkillPicks.forEach(addByName);
+    if (rc2?.variantHumanSkill) addByName(rc2.variantHumanSkill);
     return Array.from(new Set(ids));
-  }, [rule, subRuleId, raceChoices]);
+  }, [rule, subRuleId, wizardState.race]);
 
   // Simple 27-point buy helper (8..15)
   const pointCost = (score) => ({8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9}[score] ?? 0);
   const totalPoints = 27;
   const ftToMeters = (ft) => Math.round(ft * 0.3048);
 
-  const RacePreview = ({ rule, subRuleId, picks }) => {
-    if (!rule) return null;
-    const sub = subRuleId ? (rule.subraces || {})[subRuleId] : null;
-    const merged = {
-      ability: rule.ability,
-      speed: (sub && sub.speed) || rule.speed,
-      darkvision: (sub && sub.darkvision) || rule.darkvision,
-      languages: rule.languages,
-      proficiencies: mergeProf(rule.proficiencies, sub?.proficiencies),
-      traits: [...(rule.traits||[]), ...((sub&&sub.traits)||[])],
-      innateSpells: [...(rule.innateSpells||[]), ...((sub&&sub.innateSpells)||[])],
-    };
-
-    const abilityIncreases = [];
-    const collectFixed = (node) => {
-      if (node && node.type === 'fixed' && Array.isArray(node.increases)) abilityIncreases.push(...node.increases);
-    };
-    collectFixed(rule.ability);
-    if (sub && sub.ability) collectFixed(sub.ability);
-
-    // languages
-    const always = (merged.languages?.always || []);
-    const extra = Array.isArray(picks?.extraLanguages) ? picks.extraLanguages.map(x=>x.name||x) : [];
-    const highExtra = picks?.highElfExtraLanguage ? [picks.highElfExtraLanguage.name || picks.highElfExtraLanguage] : [];
-    const languages = Array.from(new Set([...always, ...extra, ...highExtra]));
-
-    // proficiencies flatten
-    const prof = merged.proficiencies || {};
-    const listFrom = (p) => Array.isArray(p?.fixed) ? p.fixed : Array.isArray(p?.choices) ? (picks?.pickedTools || []) : [];
-
-    return (
-      <div className={styles.racePreview}>
-        <div><strong>Velocidade:</strong> {merged.speed || 30} ft ({ftToMeters(merged.speed || 30)} m)</div>
-        {merged.darkvision && <div><strong>Visão no Escuro:</strong> {merged.darkvision.range} ft</div>}
-        {!!abilityIncreases.length && (
-          <div><strong>Incrementos de Atributo:</strong> {abilityIncreases.map(ai=>`${ai.ability}+${ai.amount}`).join(', ')}</div>
-        )}
-        {!!languages.length && <div><strong>Idiomas:</strong> {languages.join(', ')}</div>}
-        <div className={styles.previewColumns}>
-          <div>
-            <div className={styles.previewTitle}>Profic. Armas</div>
-            <div>{(prof.weapons||[]).join(', ') || '-'}</div>
-          </div>
-          <div>
-            <div className={styles.previewTitle}>Profic. Armaduras</div>
-            <div>{(prof.armor||[]).join(', ') || '-'}</div>
-          </div>
-          <div>
-            <div className={styles.previewTitle}>Ferramentas</div>
-            <div>{Array.isArray(prof.tools?.fixed)? prof.tools.fixed.join(', '): (prof.tools?.choices ? `Escolha ${prof.tools.choiceCount}` : '-')}</div>
-          </div>
-          <div>
-            <div className={styles.previewTitle}>Perícias</div>
-            <div>{Array.isArray(prof.skills?.fixed)? prof.skills.fixed.join(', '): (prof.skills?.choiceCount ? `Escolha ${prof.skills.choiceCount}` : '-')}</div>
-          </div>
-        </div>
-        {!!merged.traits?.length && (
-          <div><strong>Traços:</strong> {merged.traits.map(t=>t.key).join(', ')}</div>
-        )}
-        {!!merged.innateSpells?.length && (
-          <div><strong>Magias Inatas:</strong> {merged.innateSpells.map(s=>`${s.spells.join(', ')} (nv ${s.level})`).join('; ')}</div>
-        )}
-      </div>
-    );
-  };
+  // RacePreview moved to its own component
 
   function mergeProf(a,b){
     if(!a && !b) return {};
@@ -918,348 +1365,58 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
     e.preventDefault();
     setError(null);
     try {
-      if (!raceId || !klassId) {
+      if (!wizardState.race?.raceId || !effKlassId) {
         setError("Selecione raça e classe.");
         return;
       }
-      const payload = { name, background: backgroundName || background, group_id: groupId ? +groupId : null };
-      
-      const response = isEdit 
-        ? await charactersApi.update(character.id, payload) 
-        : await charactersApi.create(payload);
-      const createdChar = response.character || response;
-
-      if (!isEdit) {
-        const klass = klasses.find(k => k.id === klassId);
-        // aplica bônus raciais nos atributos enviados
-        const finalStr = eff(str,'str');
-        const finalDex = eff(dex,'dex');
-        const finalCon = eff(con,'con');
-        const finalInt = eff(intA,'int');
-        const finalWis = eff(wis,'wis');
-        const finalCha = eff(cha,'cha');
-
-        const conMod = Math.floor((finalCon - 10) / 2);
-        const hitDie = klass?.hit_die || 8;
-        const initHp = Math.max(1, hitDie + conMod);
-        const raceSummary = rule ? {
-          speed_ft: (subRuleId && (rule.subraces||{})[subRuleId]?.speed) || rule.speed,
-          speed_m: ftToMeters(((subRuleId && (rule.subraces||{})[subRuleId]?.speed) || rule.speed) || 30),
-          darkvision: ((subRuleId && (rule.subraces||{})[subRuleId]?.darkvision) || rule.darkvision) || null,
-          languages: Array.from(new Set([...(rule.languages?.always||[]), ...((raceChoices?.extraLanguages||[]).map(x=>x.name||x)), (raceChoices?.highElfExtraLanguage?.name || raceChoices?.highElfExtraLanguage)].filter(Boolean))),
-          traits: [...(rule.traits||[]), ...(((rule.subraces||{})[subRuleId]?.traits)||[])].map(t=>t.key),
-          proficiencies: mergeProf(rule.proficiencies, (rule.subraces||{})[subRuleId]?.proficiencies),
-        } : null;
-
-        const classSummary = klassRule ? {
-          klass_id: klassRule.id,
-          name: klassRule.name,
-          hit_die: klassRule.hit_die,
-          primary_abilities: klassRule.primary_abilities,
-          saving_throws: klassRule.saving_throws,
-          armor_proficiencies: klassRule.armor_proficiencies,
-          weapon_proficiencies: klassRule.weapon_proficiencies,
-          tools: classInstrumentPicks.map(i=>i.name||i),
-          skills: classSkillPicks.map(s=>s.name||s),
-          fighting_style: classFightingStyle?.name || classFightingStyle || null,
-          subclass: classSubclassId,
-          spellcasting: klassRule.spellcasting || null,
-          // Adicionar nível atual
-          current_level: Number(level) || 1
-        } : null;
-
-        // Normalize per_level to include fighting_style at its required level if set only at top level
-        const perLvl = { ...(classPicksByLevel || {}) };
+      // New transactional flow: send single payload to backend provision endpoint
+      const provisionPayload = {
+        character: {
+          id: (draftCharId || (isEdit ? character.id : null)),
+          name,
+          background: backgroundName || background,
+          group_id: groupId ? +groupId : null,
+          status: 'active'
+        },
+        wizard: buildDraftData(),
+      };
+      try {
+        const rolePath = (role === 'admin' ? 'admin' : 'player');
+        const provisionRes = await apiClient.post(`/api/v1/${rolePath}/characters/provision`, provisionPayload);
+        const created = provisionRes.character || provisionRes;
+        setSuccessMessage("Personagem criado com sucesso!");
         try {
-          const reqs = (klassRule?.required_choices_at_level || {});
-          Object.keys(reqs).forEach((lvl)=>{
-            const h = reqs[lvl] || {};
-            if (h.fighting_style && (classFightingStyle || (perLvl[lvl]?.fighting_style))) {
-              perLvl[lvl] = { ...(perLvl[lvl] || {}), fighting_style: perLvl[lvl]?.fighting_style || classFightingStyle };
-            }
-          });
+          const id = created?.id || created?.character_id;
+          const updatedChar = id ? await charactersApi.getOne(id) : created;
+          onSave(updatedChar.character || updatedChar);
+        } catch (e) {
+          onSave(created);
+        }
+        resetForm();
+        return; // stop legacy flow below
+      } catch (err) {
+        const apiErrs = err?.response?.data?.errors;
+        if (Array.isArray(apiErrs) && apiErrs.length) {
+          setError(apiErrs.join(', '));
+        } else {
+          setError(err.message || 'Erro ao criar personagem');
+        }
+        // Best-effort: persist name/background into draft to avoid losing identity on failure
+        try {
+          const bgName = (backgroundName || background || '').trim();
+          if (draftCharId && (name?.trim() || bgName)) {
+            await charactersApi.update(draftCharId, {
+              status: 'draft',
+              name: (name || '').trim() || undefined,
+              background: bgName || undefined,
+              current_step: wizardCurrentStepId,
+              draft_data: buildDraftData(),
+            });
+          }
         } catch (_) {}
-
-        // Populate per_level with actual user choices for each level
-        for (let i = 1; i <= Number(level || 1); i++) {
-          if (!perLvl[i]) {
-            perLvl[i] = {
-              asi: { choices: {} },
-              skills: [],
-              spells: [],
-              cantrips: [],
-              prepared: [],
-              instruments: [],
-              subclass_id: null,
-              fighting_style: null
-            };
-          }
-          
-          // Add actual user choices for level 1
-          if (i === 1) {
-            perLvl[i] = {
-              ...perLvl[i],
-              skills: classSkillPicks || [],
-              instruments: classInstrumentPicks || [],
-              cantrips: pickedCantrips || [],
-              spells: pickedSpells || [],
-              subclass_id: classSubclassId || null,
-              fighting_style: classFightingStyle || null
-            };
-          }
-          
-          // Add ASI choices if they exist for this level
-          const levelPicks = classPicksByLevel[i];
-          if (levelPicks?.asi) {
-            perLvl[i].asi = levelPicks.asi;
-          }
-        }
-
-        // Adicionar features ganhas por nível
-        const featuresByLevel = {};
-        for (let i = 1; i <= Number(level || 1); i++) {
-          const levelRow = (klassLevels || []).find((cl) => Number(cl.level) === i);
-          if (levelRow && levelRow.features) {
-            featuresByLevel[i] = Array.isArray(levelRow.features) ? levelRow.features : [];
-          }
-        }
-
-        // Criar sheet com metadata incluindo escolhas de classe e picks por nível
-        const sheetRes = await sheetsApi.create({
-          character_id: createdChar.id,
-          race_id: raceId,
-          sub_race_id: subRaceId || null,
-          str: finalStr, dex: finalDex, con: finalCon, int: finalInt, wis: finalWis, cha: finalCha,
-          hp_max: initHp,
-          hp_current: initHp,
-          temp_hp: 0,
-          metadata: {
-            // Dados essenciais para normalização
-            race_choices: raceChoices,
-            background: backgroundName || null,
-            background_key: backgroundKey || null,
-            alignment: alignmentKey ? { index: alignmentKey, name: (alignmentMap[alignmentKey]?.name || alignmentDetails?.name || alignmentKey), desc: alignmentDetails?.desc || null } : null,
-            background_proficiencies: backgroundProfs,
-            race_bonuses_applied: raceBonuses,
-            current_level: Number(level) || 1,
-            race_summary: raceSummary,
-            class_summary: classSummary,
-            features_by_level: featuresByLevel,
-            class_choices: {
-              // Top-level mirrors used by backend guards and services
-              instruments: (classInstrumentPicks || []).map(i => i?.name || i),
-              instruments_selected: (classInstrumentPicks || []).map(i => i?.name || i),
-              skills: (classSkillPicks || []).map(s => s?.name || s),
-              skills_selected: (classSkillPicks || []).map(s => s?.name || s),
-              fighting_style: classFightingStyle?.name || classFightingStyle || null,
-              subclass_id: classSubclassId || null,
-              asi: null,
-              // Per-level normalized map consumed by LevelUpService.persist_known_spells!
-              per_level: perLvl
-            }
-          }
-        });
-        const sheet = sheetRes.sheet || sheetRes;
-
-        // Humano Variante: aplicar talento apenas se modo selecionado for 'feat'
-        try {
-          if (ruleId === 'human' && subRuleId === 'variant') {
-            const hv = raceChoices?.variantHumanASI || null;
-            if (hv && hv.mode === 'feat' && (hv.featId || hv.featName)) {
-              const toLower = (id) => (id ? String(id).toLowerCase() : null);
-              const toNames = (arr) => Array.isArray(arr) ? arr.map(x => (x && typeof x === 'object') ? (x.name || x.id || x) : x) : [];
-              const choices = {};
-              const raw = hv.choices || {};
-              if (raw.ability) choices.ability = toLower(raw.ability);
-              if (raw.saving_throws) choices.saving_throws = toLower(raw.saving_throws);
-              if (raw.cantrips) choices.cantrips = toNames(raw.cantrips);
-              if (raw.spells) choices.spells = toNames(raw.spells);
-              if (raw.klass_id) choices.klass_id = raw.klass_id;
-              if (raw.cantrip_class) choices.cantrip_class = raw.cantrip_class;
-              if (raw.spell_class) choices.spell_class = raw.spell_class;
-              await apiClient.post(`/api/v1/player/sheets/${sheet.id}/assign_feat`, {
-                feat_id: hv.featId || hv.featName,
-                level_gained: 1,
-                choices
-              });
-            }
-          }
-        } catch (e) {
-          console.warn('Humano Variante: falha ao aplicar talento inicial', e);
-        }
-
-        // Aplicar background se selecionado
-        if (backgroundKey && backgroundData) {
-          try {
-            await apiClient.post(`/api/v1/player/sheets/${sheet.id}/assign_background`, {
-              key: backgroundKey,
-              choices: backgroundChoices,
-              background_data: backgroundData // Dados estruturados com source identificado
-            });
-          } catch (e) {
-            console.warn('Falha ao aplicar background:', e);
-          }
-          // Materializar equipamentos do background como itens iniciais (melhor esforço)
-          try {
-            const bg = backgroundIndexMap?.[backgroundKey];
-            const eqList = Array.isArray(bg?.equipment) ? bg.equipment : [];
-            for (const name of eqList) {
-              if (!name) continue;
-              await sheetItemsApi.create({
-                sheet_id: sheet.id,
-                item_index: null,
-                item_name: String(name),
-                category: 'background',
-                quantity: 1,
-                equipped: false,
-                slot: null,
-                source: 'background',
-                props_json: {}
-              });
-            }
-          } catch (e) {
-            console.warn('Falha ao materializar itens do background', e);
-          }
-        }
-        for (let i = 1; i <= Number(level || 1); i++) {
-          const p = classPicksByLevel[i];
-          const asi = p?.asi;
-          console.log(`Level ${i}:`, { p, asi });
-          
-          if (asi && asi.mode === 'feat' && (asi.featId || asi.featName)) {
-            try {
-              console.log(`Aplicando feat ${asi.featId || asi.featName} no nível ${i}`);
-              await apiClient.post(`/api/v1/player/sheets/${sheet.id}/assign_feat`, {
-                feat_id: asi.featId || asi.featName,
-                level_gained: i,
-                choices: asi.choices || {}
-              });
-              console.log(`Feat ${asi.featId || asi.featName} aplicado com sucesso`);
-            } catch (e) {
-              console.warn('Falha ao aplicar feat:', e);
-            }
-          }
-        }
-        console.log('========================');
-        
-          // Cria a classe no nível desejado
-          const createdSk = await sheetKlassesApi.create({
-            sheet_id: sheet.id,
-            klass_id: klassId,
-            sub_klass_id: (klassRule?.subclass?.choose_level && Number(level) >= klassRule.subclass.choose_level ? classSubclassId || null : null),
-            level: Number(level) || 1,
-          });
-
-        // Persist known/prepared spells conforme regras do nível
-        const sk = (createdSk && createdSk.id) ? createdSk : null;
-        if (sk) {
-          const knownApi = crudFor('sheet_known_spells', role);
-          const prepApi  = crudFor('sheet_prepared_spells', role);
-          const lvlRow   = (klassLevels || []).find((cl) => Number(cl.level) === Number(level)) || {};
-          const lvlRow1  = (klassLevels || []).find((cl) => Number(cl.level) === 1) || {};
-          const preparedCaster = (klassRule?.spellcasting?.preparation === 'prepared');
-          const preparedCasterL1 = (lvlRow1?.spellcasting && lvlRow1.spellcasting.spells_known == null);
-
-          // Cantrips são sempre "conhecidas" (não preparadas)
-          // Atribui cantrips iniciais até o limite do nível 1 (se houver)
-          const canAt1 = Number(lvlRow1?.spellcasting?.cantrips_known ?? (klassRule?.spellcasting?.cantrips_known_at_1 || 0)) || 0;
-          if (canAt1 > 0) {
-            const pickedL1 = (pickedCantrips || []).slice(0, canAt1);
-            for (const sp of pickedL1) {
-              try { await knownApi.create({ sheet_klass_id: sk.id, spell_id: sp.id }); } catch (_) {}
-            }
-          }
-          // Cantrips raciais (ex.: Alto Elfo) — também como conhecidas
-          for (const sp of (raceCantripsExtraList || [])) {
-            try {
-              await knownApi.create({ sheet_klass_id: sk.id, spell_id: sp.id });
-            } catch (e) { /* provável duplicata; ignorar */ }
-          }
-          // Magias com nível > 0: conhecidas para classes "known", preparadas para "prepared"
-          // Magias nível 1 conhecidas (classes known) ou preparadas (prepared)
-          const spellsKnownAt1 = (lvlRow1?.spellcasting && lvlRow1.spellcasting.spells_known != null) ? Number(lvlRow1.spellcasting.spells_known) : null;
-          if (spellsKnownAt1 != null && spellsKnownAt1 > 0) {
-            const pickedL1 = (pickedSpells || []).filter(s => (s.level || 1) <= 1).slice(0, spellsKnownAt1);
-            for (const sp of pickedL1) {
-              try { await knownApi.create({ sheet_klass_id: sk.id, spell_id: sp.id }); } catch (_) {}
-            }
-          } else if (preparedCasterL1) {
-            // prepared no nível 1 — opcional, backend permite sem preparar
-          }
-          // Magias raciais (nível > 0) — preparadas se caster preparado; caso contrário, conhecidas
-          for (const sp of (raceSpellsExtraList || [])) {
-            try {
-              if (preparedCaster) {
-                await prepApi.create({ sheet_id: sheet.id, spell_id: sp.id, auto: true });
-              } else {
-                await knownApi.create({ sheet_klass_id: sk.id, spell_id: sp.id });
-              }
-            } catch (e) { /* provável duplicata; ignorar */ }
-          }
-          
-          // Processar magias preparadas do classPicksByLevel
-          for (let i = 1; i <= Number(level || 1); i++) {
-            const levelPicks = classPicksByLevel[i];
-            if (levelPicks?.prepared && Array.isArray(levelPicks.prepared)) {
-              for (const sp of levelPicks.prepared) {
-                try {
-                  await prepApi.create({ 
-                    sheet_id: sheet.id, 
-                    spell_id: sp.id, 
-                    auto: false,
-                    level_gained: i
-                  });
-                } catch (e) { 
-                  console.warn('Falha ao salvar magia preparada:', sp.name, e);
-                }
-              }
-            }
-          }
-
-          // Persistir magias conhecidas (todas as escolhidas até o nível atual)
-          try {
-            const seenKnown = new Set();
-            // incluir as já persistidas acima (cantrips nível 1 e raciais)
-            for (let i = 1; i <= Number(level || 1); i++) {
-              const row = classPicksByLevel[i] || {};
-              const all = [];
-              if (Array.isArray(row.cantrips)) all.push(...row.cantrips);
-              if (Array.isArray(row.spells)) all.push(...row.spells);
-              for (const sp of all) {
-                const sid = sp.id;
-                if (!sid || seenKnown.has(sid)) continue;
-                try { await knownApi.create({ sheet_klass_id: sk.id, spell_id: sid }); } catch (_) {}
-                seenKnown.add(sid);
-              }
-            }
-          } catch (e) { console.warn('Falha ao persistir magias conhecidas por nível', e); }
-        }
-
-        // SheetKlass já foi criada no nível correto, não precisa de level up
-
-        // Persistir equipamentos escolhidos no passo Equipamentos
-        try {
-          for (const it of (equipmentPicks || [])) {
-            await sheetItemsApi.create({
-              sheet_id: sheet.id,
-              item_index: it.item_index || it.index || null,
-              item_name: it.item_name || it.name,
-              category: it.category || null,
-              quantity: Number(it.quantity || 1),
-              equipped: !!it.equipped,
-              slot: it.slot || null,
-              source: it.source || 'class',
-              props_json: it.props || it.props_json || {}
-            });
-          }
-        } catch (e) {
-          console.warn('Falha ao persistir equipamentos iniciais', e);
-        }
+        return; // stop legacy flow on error
       }
 
-      setSuccessMessage("Personagem criado com sucesso!");
-      onSave(response.character || response);  
-      resetForm();
     } catch (err) {
       setError(err.message);
     }
@@ -1272,49 +1429,206 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
         </CardHeader>
         <CardContent>
         <StepTabs
-          steps={steps}
-          currentStep={step}
+          steps={wizardSteps}
+          currentStep={wizardCurrentStepIndex}
           onStepChange={handleStepChange}
           onCancel={onClose}
           onBack={handleBack}
           onNext={handleNext}
-          canGoBack={step > 1}
-          canGoNext={canGoNext()}
-          nextLabel={step === 6 ? "Criar Personagem" : "Próximo"}
+          canGoBack={!wizardIsFirstStep}
+          canGoNext={currentStepCanProceed}
+          nextLabel={wizardIsLastStep ? "Criar Personagem" : "Próximo"}
           showCancel={true}
-          showBack={step > 1}
-          showNext={step !== 5}
-          nextDisabled={!canGoNext()}
+          showBack={!wizardIsFirstStep}
+          showNext={wizardCurrentStepId !== 5}
+          nextDisabled={!currentStepCanProceed}
         />
+        {((wizardState.race?.raceId) || effKlassId) && (
+          <SheetPreviewHeader
+            name={name}
+            ac={acPreview}
+            hp={hpPreview}
+            initiative={abilityMod(eff(dex,'dex'))}
+            level={effLevel}
+            className={selectedKlass?.name}
+            subclassName={effClassSubclassId ? (subclassNameById(effClassSubclassId) || '') : ''}
+            speedFt={(() => {
+              try {
+                const sub = subRuleId ? (rule?.subraces || {})[subRuleId] : null;
+                const sp = (sub && sub.speed) || rule?.speed;
+                const n = Number(sp);
+                const base = Number.isFinite(n) ? n : null;
+                const bonus = Number(aggregatedFeatRules?.speedFtBonus || 0);
+                const monkBonus = (() => {
+                  try {
+                    const kid = String(selectedKlass?.api_index || '').toLowerCase();
+                    const nameL = String(selectedKlass?.name || '').toLowerCase();
+                    if (kid !== 'monk' && !nameL.includes('monge')) return 0;
+                    const L = Number(effLevel || 1);
+                    if (L >= 18) return 30;
+                    if (L >= 14) return 25;
+                    if (L >= 10) return 20;
+                    if (L >= 6) return 15;
+                    if (L >= 2) return 10;
+                    return 0;
+                  } catch(_) { return 0; }
+                })();
+                const totalBonus = bonus + monkBonus;
+                return base != null ? (base + totalBonus) : (totalBonus || null);
+              } catch(_) { return null; }
+            })()}
+            proficiencies={(() => {
+              try {
+                const armor = (() => {
+                  const out = new Set();
+                  // From class/subclass/feats categories (only if a classe foi escolhida)
+                  if (effKlassId) {
+                    (allowedArmorCats || []).forEach((c)=>{
+                      const t = String(c);
+                      if (t === 'light') out.add('Armaduras Leves');
+                      else if (t === 'medium') out.add('Armaduras Médias');
+                      else if (t === 'heavy') out.add('Armaduras Pesadas');
+                      else if (t === 'shields') out.add('Escudos');
+                      else out.add(t);
+                    });
+                  }
+                  // From race/subrace proficiencies
+                  const toArr = (v) => {
+                    if (!v) return [];
+                    if (Array.isArray(v)) return v;
+                    if (typeof v === 'object') {
+                      if (Array.isArray(v.fixed)) return v.fixed;
+                      if (Array.isArray(v.choices)) return v.choices;
+                    }
+                    return [v];
+                  };
+                  const sub = subRuleId ? (rule?.subraces || {})[subRuleId] : null;
+                  const raceArmorArr = [
+                    ...toArr(rule?.proficiencies?.armor),
+                    ...toArr(sub?.proficiencies?.armor)
+                  ].map((x)=> (x && x.name) ? x.name : String(x));
+                  raceArmorArr.forEach((raw)=>{
+                    const t = String(raw || '').toLowerCase();
+                    if (!t) return;
+                    if (t.includes('leve') || t === 'light') out.add('Armaduras Leves');
+                    else if (t.includes('méd') || t.includes('medi') || t === 'medium') out.add('Armaduras Médias');
+                    else if (t.includes('pesad') || t === 'heavy') out.add('Armaduras Pesadas');
+                    else if (t.includes('escudo') || t === 'shields' || t === 'shield') out.add('Escudos');
+                    else out.add(raw);
+                  });
+                  return Array.from(out);
+                })();
+                const weapons = (() => {
+                  const out = new Set();
+                  if (effKlassId) {
+                    (allowedWeaponCats || []).forEach((c)=>{
+                      const t = String(c);
+                      if (t === 'simple') out.add('Armas Simples');
+                      else if (t === 'martial') out.add('Armas Marciais');
+                      else out.add(t);
+                    });
+                  }
+                  const toArr = (v) => {
+                    if (!v) return [];
+                    if (Array.isArray(v)) return v;
+                    if (typeof v === 'object') {
+                      if (Array.isArray(v.fixed)) return v.fixed;
+                      if (Array.isArray(v.choices)) return v.choices;
+                    }
+                    return [v];
+                  };
+                  const sub = subRuleId ? (rule?.subraces || {})[subRuleId] : null;
+                  const raceWp = [
+                    ...toArr(rule?.proficiencies?.weapons),
+                    ...toArr(sub?.proficiencies?.weapons)
+                  ].map((x)=> (x && x.name) ? x.name : String(x));
+                  raceWp.forEach((w)=> out.add(w));
+                  return Array.from(out);
+                })();
+                const tools = (() => {
+                  const out = new Set();
+                  const raceTools = (rule?.proficiencies?.tools?.fixed || []).map(String);
+                  raceTools.forEach((t)=> out.add(t));
+                  const rc = wizardState.race?.raceChoices || {};
+                  if (rc.dwarfTool) out.add(String(rc.dwarfTool));
+                  (Array.isArray(backgroundChoices?.gaming_set) ? backgroundChoices.gaming_set : []).forEach((t)=> out.add(String(t?.name||t)));
+                  (Array.isArray(backgroundChoices?.instrument) ? backgroundChoices.instrument : []).forEach((t)=> out.add(String(t?.name||t)));
+                  // Background tools estático
+                  try {
+                    const bg = (backgroundOptions || []).find(b => String(b.id) === String(backgroundKey));
+                    const bgTools = (bg?.tools || []).flatMap((tool) => {
+                      if (typeof tool === 'string') return [tool];
+                      if (tool && typeof tool === 'object') {
+                        const key = Object.keys(tool)[0];
+                        const data = tool[key] || {};
+                        const pick = (wizardState?.background?.backgroundChoices||{})?.[backgroundKey]?.tools?.[key];
+                        if (pick) return [pick];
+                        if (Array.isArray(data.fixed)) return data.fixed;
+                        return [];
+                      }
+                      return [];
+                    });
+                    bgTools.forEach((t)=> out.add(String(t)));
+                  } catch(_) {}
+                  return Array.from(out);
+                })();
+                const languages = (() => {
+                  const out = new Set();
+                  try {
+                    const bg = (backgroundOptions || []).find(b => String(b.id) === String(backgroundKey));
+                    const langBlock = bg?.languages || null;
+                    const picks = (wizardState?.background?.backgroundChoices||{})?.[backgroundKey]?.languages || [];
+                    picks.forEach((l)=> out.add(String(l)));
+                    if (Array.isArray(langBlock?.fixed)) langBlock.fixed.forEach((l)=> out.add(String(l)));
+                    // Idiomas da raça
+                    const always = (rule?.languages?.always || []);
+                    always.forEach((l)=> out.add(String(l)));
+                    const rc = wizardState.race?.raceChoices || {};
+                    const extra = Array.isArray(rc?.extraLanguages) ? rc.extraLanguages.map((x)=> x?.name || x) : [];
+                    extra.forEach((l)=> out.add(String(l)));
+                    if (ruleId === 'elf' && subRuleId === 'high' && rc?.highElfExtraLanguage) {
+                      out.add(String(rc.highElfExtraLanguage?.name || rc.highElfExtraLanguage));
+                    }
+                  } catch(_) {}
+                  return Array.from(out);
+                })();
+                return { armor, weapons, tools, languages };
+              } catch(_) { return { armor:[], weapons:[], tools:[], languages:[] }; }
+            })()}
+            raceLabel={`${selectedRace?.name || ''}${wizardState.race?.subRaceId ? ` / ${selectedSubRace?.name || ''}` : ''}`}
+            backgroundLabel={backgroundName || background || ''}
+          />
+        )}
         <div className={styles.creationContainer}>
-        {step === 3 && (
+        {wizardCurrentStepId === 3 && (
           <FeaturesSidebar
             rule={klassRule}
             klassLevels={klassLevels}
-            picksByLevel={classPicksByLevel}
-            maxLevel={level}
+            picksByLevel={wizardState.klass?.classPicksByLevel || {}}
+            maxLevel={effLevel}
             raceCantripsExtra={raceCantripsExtraList}
             raceSpellsExtra={raceSpellsExtraList}
             subKlasses={subKlasses}
             selectedKlassId={selectedKlass?.id}
             spellDict={spellDict}
+            classSubclassId={effClassSubclassId}
           />
         )}
         <form onSubmit={handleSubmit} className={`${styles.form} ${styles.mainColumn}`}>
           {error && <div className={styles.error}>{error}</div>}
           {successMessage && <div className={styles.success}>{successMessage}</div>}
-          {step === 1 && (
+          {wizardCurrentStepId === 1 && (
             <>
               <label className={styles.label}>Raça:</label>
-              <Select placeholder="Selecione a raça" options={races} value={raceId} onChange={(val)=>{setRaceId(val); setSubRaceId("");}} />
+              <Select placeholder="Selecione a raça" options={races} value={wizardState.race?.raceId || ""} onChange={(val)=>{setRaceIdW(val); setSubRaceIdW(""); setRaceChoicesW({});}} />
               <label className={styles.label}>Sub‑raça:</label>
-              <Select placeholder="Selecione a sub‑raça" options={subRaces.filter(sr=>!raceId || sr.race_id===raceId)} value={subRaceId} onChange={(val)=>setSubRaceId(val)} disabled={!raceId || subRaces.filter(sr=>!raceId || sr.race_id===raceId).length === 0} />
+              <Select placeholder="Selecione a sub‑raça" options={subRaces.filter(sr=>!(wizardState.race?.raceId) || String(sr.race_id)===String(wizardState.race?.raceId))} value={wizardState.race?.subRaceId || ""} onChange={(val)=>setSubRaceIdW(val)} disabled={!(wizardState.race?.raceId) || subRaces.filter(sr=>!(wizardState.race?.raceId) || String(sr.race_id)===String(wizardState.race?.raceId)).length === 0} />
               {/* Opções específicas por raça/sub‑raça */}
               <RaceOptionsSwitch
                 ruleId={ruleId}
                 subRuleId={subRuleId}
-                picks={raceChoices}
-                setPicks={setRaceChoices}
+                picks={wizardState.race?.raceChoices || {}}
+                setPicks={setRaceChoicesW}
                 wizardCantripOptions={wizardCantripOptions}
                 cantripOptions={cantripOptions}
                 skillOptions={PROF_OPTIONS}
@@ -1325,109 +1639,70 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
                 <LanguageSelect
                   title={`Idiomas extras`}
                   options={(rule.languages.choiceList || ['Anão','Élfico','Halfling','Dracônico','Gnômico','Orc','Infernal']).filter(l=>!(rule.languages.always||[]).includes(l))}
-                  value={raceChoices?.extraLanguages || []}
+                  value={wizardState.race?.raceChoices?.extraLanguages || []}
                   choose={rule.languages.choiceCount}
-                  onChange={(ids)=>setRaceChoices({ ...(raceChoices||{}), extraLanguages: ids })}
+                  onChange={(ids)=>setRaceChoicesW({ ...(wizardState.race?.raceChoices || {}), extraLanguages: ids })}
                 />
               )}
 
               {rule && (
                 <div className={styles.panel} style={{marginTop: 12}}>
                   <div className={styles.panelTitle}>Resumo da Raça</div>
-                  <RacePreview rule={rule} subRuleId={subRuleId} picks={raceChoices} />
+                  <RacePreview rule={rule} subRuleId={subRuleId} picks={wizardState.race?.raceChoices || {}} traitDefinitions={raceTraitDefs} />
                 </div>
               )}
 
               {/* Método e pool de atributos */}
-              <div className={styles.panel} style={{marginTop: 12}}>
-                <div className={styles.panelTitle}>Método de Atributos</div>
-                <div className={styles.radioGroup}>
-                  <div className={styles.radioOption}>
-                    <input
-                      type="radio"
-                      name="attrMethod"
-                      className={styles.radioInput}
-                      checked={abilityMethod === 'point_buy'}
-                      onChange={()=>{ setAbilityMethod('point_buy'); setRolledScores([]); }}
-                    />
-                    <span className={styles.radioLabel}>Point Buy</span>
-                  </div>
-                  <div className={styles.radioOption}>
-                    <input
-                      type="radio"
-                      name="attrMethod"
-                      className={styles.radioInput}
-                      checked={abilityMethod === 'roll_4d6' && rolledScores.length !== 6}
-                      onChange={()=>{ setRolledScores([]); setAbilityMethod('roll_4d6'); }}
-                    />
-                    <span className={styles.radioLabel}>Rolar 4d6 (descarta 1)</span>
-                  </div>
-                  <div className={styles.radioOption}>
-                    <input
-                      type="radio"
-                      name="attrMethod"
-                      className={styles.radioInput}
-                      checked={abilityMethod === 'roll_4d6' && rolledScores.join(',') === '15,14,13,12,10,8'}
-                      onChange={()=>{ setAbilityMethod('roll_4d6'); setRolledScores([15,14,13,12,10,8]); }}
-                    />
-                    <span className={styles.radioLabel}>Standard Array (15,14,13,12,10,8)</span>
-                  </div>
-                </div>
-
-                {abilityMethod === 'roll_4d6' && (
-                  <>
-                    <div className={styles.small}>
-                      Clique para gerar 6 valores. Você irá distribuí-los no próximo passo.
-                    </div>
-                    <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:8 }}>
-                      <Button type="button" variant="secondary" onClick={rollSixScores}>Rolar 6 valores</Button>
-                      {rolledScores.length === 6 && (
-                        <div className={styles.small}>Valores: {rolledScores.join(', ')}</div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
+              <AbilityMethodSection
+                abilityMethod={wizardState.race?.abilityMethod}
+                rolledScores={wizardState.race?.rolledScores || []}
+                onPickPointBuy={()=>{ setAbilityMethodW('point_buy'); setRolledScoresW([]); }}
+                onPickRoll4d6={()=>{ setRolledScoresW([]); setAbilityMethodW('roll_4d6'); }}
+                onPickStandardArray={()=>{ setAbilityMethodW('roll_4d6'); setRolledScoresW([15,14,13,12,10,8]); }}
+                onRollSix={rollSixScores}
+              />
             </>
           )}
 
-        {step === 3 && (
+        {wizardCurrentStepId === 3 && (
           <>
             <ClassStepper
               klasses={klasses}
               classRules={classRules}
               dicts={classDicts}
               klassLevels={klassLevels}
-              klassId={klassId}
-              setKlassId={setKlassId}
-              level={level}
-              setLevel={(v)=>setLevel(v)}
-              classSkillPicks={classSkillPicks}
-              setClassSkillPicks={setClassSkillPicks}
-              classInstrumentPicks={classInstrumentPicks}
-              setClassInstrumentPicks={setClassInstrumentPicks}
-              classFightingStyle={classFightingStyle}
-              setClassFightingStyle={setClassFightingStyle}
-              pickedCantrips={pickedCantrips}
-              setPickedCantrips={setPickedCantrips}
-              pickedSpells={pickedSpells}
-              setPickedSpells={setPickedSpells}
-              classSubclassId={classSubclassId}
-              setClassSubclassId={setClassSubclassId}
+              klassId={effKlassId}
+              setKlassId={setKlassIdW}
+              level={effLevel}
+              setLevel={(v)=>setLevelW(v)}
+              classSkillPicks={effClassSkillPicks}
+              setClassSkillPicks={setClassSkillPicksW}
+              classInstrumentPicks={effClassInstrumentPicks}
+              setClassInstrumentPicks={setClassInstrumentPicksW}
+              classFightingStyle={effClassFightingStyle}
+              setClassFightingStyle={setClassFightingStyleW}
+              pickedCantrips={wizardState.klass?.pickedCantrips || []}
+              setPickedCantrips={setPickedCantripsW}
+              pickedSpells={wizardState.klass?.pickedSpells || []}
+              setPickedSpells={setPickedSpellsW}
+              classSubclassId={effClassSubclassId}
+              setClassSubclassId={setClassSubclassIdW}
               cantripOptions={cantripOptions}
               spellOptions={spellOptions}
               spellCatalog={spellCatalog}
               CLASS_NAME_MAP={CLASS_NAME_MAP}
-              asiChoice={asiChoice}
-              setAsiChoice={setAsiChoice}
-              classPicksByLevel={classPicksByLevel}
-              setClassPicksByLevel={setClassPicksByLevel}
+              asiChoice={wizardState.klass?.asiChoice}
+              setAsiChoice={setAsiChoiceW}
+              classPicksByLevel={effClassPicksByLevel}
+              setClassPicksByLevel={setClassPicksByLevelW}
               excludeSkillIds={(backgroundProfs || []).map(s=> (typeof s==='string'? s : (s?.id || s?.name || '')))}
               raceCantripsExtra={raceCantripsExtraList}
               raceSpellsExtra={raceSpellsExtraList}
               raceLockedSkillIds={raceSkillProfIds}
               raceSelectedFeatId={raceSelectedFeatId}
+              raceFeatManeuvers={raceFeatManeuvers}
               backgroundProfs={backgroundProfs}
+              onLevelUp={async () => { await saveLevelDraft(); }}
               abilityScores={{
                 str: eff(str,'str'),
                 dex: eff(dex,'dex'),
@@ -1437,14 +1712,14 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
                 cha: eff(cha,'cha')
               }}
               onCancel={onClose}
-              onBack={() => setStep(2)}
+              onBack={() => goToWizardStep(2)}
               attributesReady={
-                abilityMethod !== 'roll_4d6' || (
-                  Array.isArray(rolledScores) && rolledScores.length === 6 &&
+                (wizardState.race?.abilityMethod !== 'roll_4d6') || (
+                  Array.isArray(wizardState.race?.rolledScores) && (wizardState.race?.rolledScores).length === 6 &&
                   [str,dex,con,intA,wis,cha].every(v => Number(v) > 0)
                 )
               }
-              onProceedToFinalize={() => setStep(5)}
+              onProceedToFinalize={() => goToWizardStep(5)}
               canLevelUp={canLevelUp}
               getLevelUpErrors={getLevelUpErrors}
             />
@@ -1452,122 +1727,121 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
           </>
         )}
 
-          {step === 2 && (
+          {wizardCurrentStepId === 2 && (
             <StepBackground
               backgroundKey={backgroundKey}
-              setBackgroundKey={setBackgroundKey}
+              setBackgroundKey={setBackgroundKeyW}
               backgroundName={backgroundName}
-              setBackgroundName={setBackgroundName}
+              setBackgroundName={setBackgroundNameW}
               backgroundProfs={backgroundProfs}
-              setBackgroundProfs={setBackgroundProfs}
-              backgroundOptions={backgroundOptions}
-              backgroundIndexMap={backgroundIndexMap}
+              setBackgroundProfs={setBackgroundProfsW}
+              backgroundOptions={backgroundOptions || []}
+              backgroundIndexMap={backgroundIndexMap || {}}
               backgroundChoices={backgroundChoices}
-              setBackgroundChoices={setBackgroundChoices}
+              setBackgroundChoices={setBackgroundChoicesW}
               onValidationChange={handleBackgroundValidation}
             />
           )}
 
-          {step === 4 && (
+          {wizardCurrentStepId === 4 && (
             <StepAlignment
-              alignmentKey={alignmentKey}
-              setAlignmentKey={setAlignmentKey}
+              alignmentKey={wizardState.meta?.alignmentKey}
+              setAlignmentKey={setAlignmentKeyW}
               alignmentDetails={alignmentDetails}
               alignmentMap={alignmentMap}
               alignments={alignments}
             />
           )}
 
-          {step === 5 && (
+          {wizardCurrentStepId === 5 && (
             <StepEquipment
               allowedArmorCats={allowedArmorCats}
               allowedWeaponCats={allowedWeaponCats}
-              picks={equipmentPicks}
-              setPicks={setEquipmentPicks}
-              onBack={() => setStep(4)}
-              onNext={() => setStep(6)}
+              allowShortsword={allowShortsword}
+              picks={wizardState.equipment?.equipmentPicks || []}
+              setPicks={setEquipmentPicksW}
+              onBack={() => goToWizardStep(4)}
+              onNext={async () => {
+                await saveDraft(6);
+                goToWizardStep(6);
+              }}
             />
           )}
 
-          {step === 6 && (
+          {wizardCurrentStepId === 6 && (
             <>
               <DialogDescription>Finalizar e Detalhar</DialogDescription>
               <label className={styles.label}>Nome do Personagem:</label>
-              <Input value={name} onChange={(e)=>setName(e.target.value)} required />
+              <Input
+                value={name}
+                onChange={(e)=>setNameW(e.target.value)}
+                onBlur={() => saveDraft(6)}
+                required
+              />
               <hr className={styles.divider}/>
-              
-              <div className={styles.summaryContainer}>
-                <DialogDescription>Resumo do Personagem</DialogDescription>
-                
-                <div className={styles.summaryGrid}>
-                  <div className={styles.summaryItem}>
-                    <strong>Raça/Sub‑raça:</strong> {races.find(r=>r.id===raceId)?.name} {subRaceId ? `/ ${subRaces.find(s=>s.id===subRaceId)?.name}`: ''}
-                  </div>
-                  
-                  <div className={styles.summaryItem}>
-                    <strong>Classe/Subclasse:</strong> {klasses.find(k=>k.id===klassId)?.name} {classSubclassId ? `/ ${(() => { const ruleKey = CLASS_NAME_MAP[klasses.find(k=>k.id===klassId)?.name] || ''; const opts = (classRules[ruleKey]?.subclass?.options)||{}; const o = Object.values(opts).find(x=>x.id===classSubclassId); return o?.name || ''; })()}`: ''} (Nível {level})
-                  </div>
-                  
-                  <div className={styles.summaryItem}>
-                    <strong>Alinhamento:</strong> {alignmentMap[alignmentKey]?.name || alignmentKey}
-                  </div>
-                  
-                  <div className={styles.summaryItem}>
-                    <strong>Background:</strong> {backgroundName}
-                  </div>
-                  
-                  <div className={styles.summaryItem}>
-                    <strong>Atributos finais:</strong> FOR {eff(str,'str')} DES {eff(dex,'dex')} CON {eff(con,'con')} INT {eff(intA,'int')} SAB {eff(wis,'wis')} CAR {eff(cha,'cha')}
-                  </div>
-                  
-                  <div className={styles.summaryItem}>
-                    <strong>Cantrips:</strong> {[...pickedCantrips.map(s=>s.name), ...featCantrips].filter(Boolean).join(', ') || 'Nenhum'}
-                    {featCantrips.length > 0 && (
-                      <span style={{ fontSize: '12px', color: '#666', marginLeft: '8px' }}>
-                        (incluindo {featCantrips.length} de feats)
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className={styles.summaryItem}>
-                    <strong>Magias:</strong> {[...pickedSpells.map(s=>s.name), ...featSpells].filter(Boolean).join(', ') || 'Nenhuma'}
-                    {featSpells.length > 0 && (
-                      <span style={{ fontSize: '12px', color: '#666', marginLeft: '8px' }}>
-                        (incluindo {featSpells.length} de feats)
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                {/* ASI Summary Panel */}
+              <ClassFinalSummary
+                raceLabel={`${(races.find(r=>String(r.id)===String(wizardState.race?.raceId))?.name) || ''}${wizardState.race?.subRaceId ? ` / ${subRaces.find(s=>String(s.id)===String(wizardState.race.subRaceId))?.name || ''}` : ''}`}
+                classLabel={`${(klasses.find(k=>String(k.id)===String(wizardState.klass?.klassId))?.name) || ''}${wizardState.klass?.classSubclassId ? ` / ${subclassNameById(wizardState.klass.classSubclassId) || ''}`: ''} (Nível ${effLevel})`}
+                alignmentLabel={alignmentMap[wizardState.meta?.alignmentKey]?.name || wizardState.meta?.alignmentKey}
+                backgroundName={backgroundName}
+                hp={hpPreview}
+                attributesText={`FOR ${eff(str,'str')} DES ${eff(dex,'dex')} CON ${eff(con,'con')} INT ${eff(intA,'int')} SAB ${eff(wis,'wis')} CAR ${eff(cha,'cha')}`}
+                cantripNames={[...(wizardState.klass?.pickedCantrips || []).map(s=>s.name), ...featCantrips].filter(Boolean)}
+                spellNames={[...(wizardState.klass?.pickedSpells || []).map(s=>s.name), ...featSpells].filter(Boolean)}
+                featCantripsCount={featCantrips.length}
+                featSpellsCount={featSpells.length}
+              />
+
+              {/* ASI Summary Panel */}
                 <div style={{ marginTop: 24 }}>
                   <ASISummaryPanel 
-                    classPicksByLevel={classPicksByLevel} 
-                    level={level} 
+                    classPicksByLevel={effClassPicksByLevel} 
+                    level={effLevel} 
                   />
                 </div>
-              </div>
             </>
           )}
         </form>
-        {step >= 1 && (
+        {wizardCurrentStepId >= 1 && (
         <AttributesSidePanel
-          str={str} setStr={setStr}
-          dex={dex} setDex={setDex}
-          con={con} setCon={setCon}
-          intA={intA} setIntA={setIntA}
-          wis={wis} setWis={setWis}
-          cha={cha} setCha={setCha}
+          str={str} setStr={setStrW}
+          dex={dex} setDex={setDexW}
+          con={con} setCon={setConW}
+          intA={intA} setIntA={setIntW}
+          wis={wis} setWis={setWisW}
+          cha={cha} setCha={setChaW}
           raceBonuses={raceBonuses}
           asiBonuses={asiBonuses}
           remainingPoints={remainingPoints}
-          abilityMethod={abilityMethod}
-          level={level}
+          abilityMethod={wizardState.race?.abilityMethod}
+          level={effLevel}
           classSavingThrows={klassRule?.saving_throws || []}
-          classSkillPicks={classSkillPicks}
+          classSkillPicks={effClassSkillPicks}
           backgroundProfs={backgroundProfs}
           raceSkillProfs={raceSkillProfIds}
-          rolledScores={rolledScores}
+          expertiseSkills={(() => {
+            try {
+              const out = [];
+              const seen = new Set();
+              for (let i = 1; i <= Number(effLevel || 1); i++) {
+                const row = (effClassPicksByLevel || {})[i] || {};
+                const exp = row.expertise_skills || row.expertise;
+                const arr = Array.isArray(exp) ? exp : (exp ? [exp] : []);
+                arr.forEach((x) => {
+                  const id = (x && typeof x === 'object') ? (x.id || x.name || x) : x;
+                  const key = String(id);
+                  if (!seen.has(key)) { seen.add(key); out.push(x); }
+                });
+              }
+              return out;
+            } catch(_) { return []; }
+          })()}
+          halfProfOnUntrained={(() => {
+            try {
+              return String(klassRule?.id || '').toLowerCase() === 'bard' && Number(effLevel) >= 2;
+            } catch(_) { return false; }
+          })()}
+          rolledScores={wizardState.race?.rolledScores}
           styles={styles}
         />
         )}
@@ -1583,50 +1857,204 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
         <DialogTitle>Criar Personagem</DialogTitle>
       </DialogHeader>
       <DialogContent>
-        <StepTabs
-          steps={steps}
-          currentStep={step}
-          onStepChange={handleStepChange}
-          onCancel={onClose}
-          onBack={handleBack}
-          onNext={handleNext}
-          canGoBack={step > 1}
-          canGoNext={canGoNext()}
-          nextLabel={step === 6 ? "Criar Personagem" : "Próximo"}
-          showCancel={true}
-          showBack={step > 1}
-          showNext={step !== 5}
-          nextDisabled={!canGoNext()}
-        />
+      <StepTabs
+        steps={wizardSteps}
+        currentStep={wizardCurrentStepIndex}
+        onStepChange={handleStepChange}
+        onCancel={onClose}
+        onBack={handleBack}
+        onNext={handleNext}
+        canGoBack={!wizardIsFirstStep}
+        canGoNext={currentStepCanProceed}
+        nextLabel={wizardIsLastStep ? "Criar Personagem" : "Próximo"}
+        showCancel={true}
+        showBack={!wizardIsFirstStep}
+        showNext={wizardCurrentStepId !== 5}
+        nextDisabled={!currentStepCanProceed}
+      />
+        {(wizardState.race?.raceId || effKlassId) && (
+          <SheetPreviewHeader
+            name={name}
+            ac={acPreview}
+            hp={hpPreview}
+            initiative={abilityMod(eff(dex,'dex'))}
+            level={effLevel}
+            className={selectedKlass?.name}
+            subclassName={effClassSubclassId ? (subclassNameById(effClassSubclassId) || '') : ''}
+            speedFt={(() => {
+              try {
+                const sub = subRuleId ? (rule?.subraces || {})[subRuleId] : null;
+                const sp = (sub && sub.speed) || rule?.speed;
+                const n = Number(sp);
+                const base = Number.isFinite(n) ? n : null;
+                const bonus = Number(aggregatedFeatRules?.speedFtBonus || 0);
+                const monkBonus = (() => {
+                  try {
+                    const kid = String(selectedKlass?.api_index || '').toLowerCase();
+                    const nameL = String(selectedKlass?.name || '').toLowerCase();
+                    if (kid !== 'monk' && !nameL.includes('monge')) return 0;
+                    const L = Number(effLevel || 1);
+                    if (L >= 18) return 30;
+                    if (L >= 14) return 25;
+                    if (L >= 10) return 20;
+                    if (L >= 6) return 15;
+                    if (L >= 2) return 10;
+                    return 0;
+                  } catch(_) { return 0; }
+                })();
+                const totalBonus = bonus + monkBonus;
+                return base != null ? (base + totalBonus) : (totalBonus || null);
+              } catch(_) { return null; }
+            })()}
+            proficiencies={(() => {
+              try {
+                const armor = (() => {
+                  const out = new Set();
+                  if (effKlassId) {
+                    (allowedArmorCats || []).forEach((c)=>{
+                      const t = String(c);
+                      if (t === 'light') out.add('Armaduras Leves');
+                      else if (t === 'medium') out.add('Armaduras Médias');
+                      else if (t === 'heavy') out.add('Armaduras Pesadas');
+                      else if (t === 'shields') out.add('Escudos');
+                      else out.add(t);
+                    });
+                  }
+                  const toArr = (v) => {
+                    if (!v) return [];
+                    if (Array.isArray(v)) return v;
+                    if (typeof v === 'object') {
+                      if (Array.isArray(v.fixed)) return v.fixed;
+                      if (Array.isArray(v.choices)) return v.choices;
+                    }
+                    return [v];
+                  };
+                  const sub = subRuleId ? (rule?.subraces || {})[subRuleId] : null;
+                  const raceArmorArr = [
+                    ...toArr(rule?.proficiencies?.armor),
+                    ...toArr(sub?.proficiencies?.armor)
+                  ].map((x)=> (x && x.name) ? x.name : String(x));
+                  raceArmorArr.forEach((raw)=>{
+                    const t = String(raw || '').toLowerCase();
+                    if (!t) return;
+                    if (t.includes('leve') || t === 'light') out.add('Armaduras Leves');
+                    else if (t.includes('méd') || t.includes('medi') || t === 'medium') out.add('Armaduras Médias');
+                    else if (t.includes('pesad') || t === 'heavy') out.add('Armaduras Pesadas');
+                    else if (t.includes('escudo') || t === 'shields' || t === 'shield') out.add('Escudos');
+                    else out.add(raw);
+                  });
+                  return Array.from(out);
+                })();
+                const weapons = (() => {
+                  const out = new Set();
+                  if (effKlassId) {
+                    (allowedWeaponCats || []).forEach((c)=>{
+                      const t = String(c);
+                      if (t === 'simple') out.add('Armas Simples');
+                      else if (t === 'martial') out.add('Armas Marciais');
+                      else out.add(t);
+                    });
+                  }
+                  const toArr = (v) => {
+                    if (!v) return [];
+                    if (Array.isArray(v)) return v;
+                    if (typeof v === 'object') {
+                      if (Array.isArray(v.fixed)) return v.fixed;
+                      if (Array.isArray(v.choices)) return v.choices;
+                    }
+                    return [v];
+                  };
+                  const sub = subRuleId ? (rule?.subraces || {})[subRuleId] : null;
+                  const raceWp = [
+                    ...toArr(rule?.proficiencies?.weapons),
+                    ...toArr(sub?.proficiencies?.weapons)
+                  ].map((x)=> (x && x.name) ? x.name : String(x));
+                  raceWp.forEach((w)=> out.add(w));
+                  return Array.from(out);
+                })();
+                const tools = (() => {
+                  const out = new Set();
+                  const raceTools = (rule?.proficiencies?.tools?.fixed || []).map(String);
+                  raceTools.forEach((t)=> out.add(t));
+                  const rc = wizardState.race?.raceChoices || {};
+                  if (rc.dwarfTool) out.add(String(rc.dwarfTool));
+                  (Array.isArray(backgroundChoices?.gaming_set) ? backgroundChoices.gaming_set : []).forEach((t)=> out.add(String(t?.name||t)));
+                  (Array.isArray(backgroundChoices?.instrument) ? backgroundChoices.instrument : []).forEach((t)=> out.add(String(t?.name||t)));
+                  try {
+                    const bg = (backgroundOptions || []).find(b => String(b.id) === String(backgroundKey));
+                    const bgTools = (bg?.tools || []).flatMap((tool) => {
+                      if (typeof tool === 'string') return [tool];
+                      if (tool && typeof tool === 'object') {
+                        const key = Object.keys(tool)[0];
+                        const data = tool[key] || {};
+                        const pick = (wizardState?.background?.backgroundChoices||{})?.[backgroundKey]?.tools?.[key];
+                        if (pick) return [pick];
+                        if (Array.isArray(data.fixed)) return data.fixed;
+                        return [];
+                      }
+                      return [];
+                    });
+                    bgTools.forEach((t)=> out.add(String(t)));
+                  } catch(_) {}
+                  return Array.from(out);
+                })();
+                const languages = (() => {
+                  const out = new Set();
+                  try {
+                    const bg = (backgroundOptions || []).find(b => String(b.id) === String(backgroundKey));
+                    const langBlock = bg?.languages || null;
+                    const picks = (wizardState?.background?.backgroundChoices||{})?.[backgroundKey]?.languages || [];
+                    picks.forEach((l)=> out.add(String(l)));
+                    if (Array.isArray(langBlock?.fixed)) langBlock.fixed.forEach((l)=> out.add(String(l)));
+                    // Idiomas da raça
+                    const always = (rule?.languages?.always || []);
+                    always.forEach((l)=> out.add(String(l)));
+                    const rc = wizardState.race?.raceChoices || {};
+                    const extra = Array.isArray(rc?.extraLanguages) ? rc.extraLanguages.map((x)=> x?.name || x) : [];
+                    extra.forEach((l)=> out.add(String(l)));
+                    if (ruleId === 'elf' && subRuleId === 'high' && rc?.highElfExtraLanguage) {
+                      out.add(String(rc.highElfExtraLanguage?.name || rc.highElfExtraLanguage));
+                    }
+                  } catch(_) {}
+                  return Array.from(out);
+                })();
+                return { armor, weapons, tools, languages };
+              } catch(_) { return { armor:[], weapons:[], tools:[], languages:[] }; }
+            })()}
+            raceLabel={`${selectedRace?.name || ''}${wizardState.race?.subRaceId ? ` / ${selectedSubRace?.name || ''}` : ''}`}
+            backgroundLabel={backgroundName || background || ''}
+          />
+        )}
         <div className={styles.creationContainer}>
-        {step === 3 && (
-          <FeaturesSidebar
+          {wizardCurrentStepId === 3 && (
+            <FeaturesSidebar
             rule={klassRule}
             klassLevels={klassLevels}
-            picksByLevel={classPicksByLevel}
-            maxLevel={level}
+            picksByLevel={effClassPicksByLevel}
+            maxLevel={effLevel}
             raceCantripsExtra={raceCantripsExtraList}
             raceSpellsExtra={raceSpellsExtraList}
             subKlasses={subKlasses}
             selectedKlassId={selectedKlass?.id}
             spellDict={spellDict}
+            classSubclassId={effClassSubclassId}
           />
         )}
         <form onSubmit={handleSubmit} className={`${styles.form} ${styles.mainColumn}`}>
           {error && <div className={styles.error}>{error}</div>}
           {successMessage && <div className={styles.success}>{successMessage}</div>}
-          {step === 1 && (
+          {wizardCurrentStepId === 1 && (
             <>
               <label className={styles.label}>Raça:</label>
-              <Select placeholder="Selecione a raça" options={races} value={raceId} onChange={(val)=>{setRaceId(val); setSubRaceId("");}} />
+              <Select placeholder="Selecione a raça" options={races} value={wizardState.race?.raceId || ""} onChange={(val)=>{setRaceIdW(val); setSubRaceIdW(""); setRaceChoicesW({});}} />
               <label className={styles.label}>Sub‑raça:</label>
-              <Select placeholder="Selecione a sub‑raça" options={subRaces.filter(sr=>!raceId || sr.race_id===raceId)} value={subRaceId} onChange={(val)=>setSubRaceId(val)} disabled={!raceId || subRaces.filter(sr=>!raceId || sr.race_id===raceId).length === 0} />
+              <Select placeholder="Selecione a sub‑raça" options={subRaces.filter(sr=>!(wizardState.race?.raceId) || String(sr.race_id)===String(wizardState.race?.raceId))} value={wizardState.race?.subRaceId || ""} onChange={(val)=>setSubRaceIdW(val)} disabled={!(wizardState.race?.raceId) || subRaces.filter(sr=>!(wizardState.race?.raceId) || String(sr.race_id)===String(wizardState.race?.raceId)).length === 0} />
               {/* Opções específicas por raça/sub‑raça */}
               <RaceOptionsSwitch
                 ruleId={ruleId}
                 subRuleId={subRuleId}
-                picks={raceChoices}
-                setPicks={setRaceChoices}
+                picks={wizardState.race?.raceChoices || {}}
+                setPicks={setRaceChoicesW}
                 wizardCantripOptions={wizardCantripOptions}
                 cantripOptions={cantripOptions}
                 skillOptions={PROF_OPTIONS}
@@ -1636,16 +2064,16 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
                 <LanguageSelect
                   title={`Idiomas extras`}
                   options={(rule.languages.choiceList || ['Anão','Élfico','Halfling','Dracônico','Gnômico','Orc','Infernal']).filter(l=>!(rule.languages.always||[]).includes(l))}
-                  value={raceChoices?.extraLanguages || []}
+                  value={wizardState.race?.raceChoices?.extraLanguages || []}
                   choose={rule.languages.choiceCount}
-                  onChange={(ids)=>setRaceChoices({ ...(raceChoices||{}), extraLanguages: ids })}
+                  onChange={(ids)=>setRaceChoicesW({ ...(wizardState.race?.raceChoices || {}), extraLanguages: ids })}
                 />
               )}
 
               {rule && (
                 <div className={styles.panel} style={{marginTop: 12}}>
                   <div className={styles.panelTitle}>Resumo da Raça</div>
-                  <RacePreview rule={rule} subRuleId={subRuleId} picks={raceChoices} />
+                  <RacePreview rule={rule} subRuleId={subRuleId} picks={wizardState.race?.raceChoices || {}} traitDefinitions={raceTraitDefs} />
                 </div>
               )}
 
@@ -1657,114 +2085,36 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
                 </div>
                 <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:8 }}>
                   <Button type="button" variant="secondary" onClick={rollSixScores}>Rolar 6 valores</Button>
-                  {rolledScores.length === 6 && (
-                    <div className={styles.small}>Valores: {rolledScores.join(', ')}</div>
+                  {Array.isArray(wizardState.race?.rolledScores) && wizardState.race.rolledScores.length === 6 && (
+                    <div className={styles.small}>Valores: {wizardState.race.rolledScores.join(', ')}</div>
                   )}
                 </div>
               </div>
             </>
           )}
 
-        {step === 3 && (
-          <>
-            <ClassStepper
-              klasses={klasses}
-              classRules={classRules}
-              dicts={classDicts}
-              klassLevels={klassLevels}
-              klassId={klassId}
-              setKlassId={setKlassId}
-              level={level}
-              setLevel={(v)=>setLevel(v)}
-              classSkillPicks={classSkillPicks}
-              setClassSkillPicks={setClassSkillPicks}
-              classInstrumentPicks={classInstrumentPicks}
-              setClassInstrumentPicks={setClassInstrumentPicks}
-              classFightingStyle={classFightingStyle}
-              setClassFightingStyle={setClassFightingStyle}
-              pickedCantrips={pickedCantrips}
-              setPickedCantrips={setPickedCantrips}
-              pickedSpells={pickedSpells}
-              setPickedSpells={setPickedSpells}
-              classSubclassId={classSubclassId}
-              setClassSubclassId={setClassSubclassId}
-              cantripOptions={cantripOptions}
-              spellOptions={spellOptions}
-              spellCatalog={spellCatalog}
-              CLASS_NAME_MAP={CLASS_NAME_MAP}
-              asiChoice={asiChoice}
-              setAsiChoice={setAsiChoice}
-              classPicksByLevel={classPicksByLevel}
-              setClassPicksByLevel={setClassPicksByLevel}
-              excludeSkillIds={(backgroundProfs || []).map(s=> (typeof s==='string'? s : (s?.id || s?.name || '')))}
-              raceCantripsExtra={raceCantripsExtraList}
-              raceSpellsExtra={raceSpellsExtraList}
-              raceLockedSkillIds={raceSkillProfIds}
-              backgroundProfs={backgroundProfs}
-              abilityScores={{
-                str: eff(str,'str'),
-                dex: eff(dex,'dex'),
-                con: eff(con,'con'),
-                int: eff(intA,'int'),
-                wis: eff(wis,'wis'),
-                cha: eff(cha,'cha')
-              }}
-              onCancel={onClose}
-              onBack={() => setStep(2)}
-              attributesReady={
-                abilityMethod !== 'roll_4d6' || (
-                  Array.isArray(rolledScores) && rolledScores.length === 6 &&
-                  [str,dex,con,intA,wis,cha].every(v => Number(v) > 0)
-                )
-              }
-              onProceedToFinalize={() => setStep(5)}
-              canLevelUp={canLevelUp}
-              getLevelUpErrors={getLevelUpErrors}
-            />
-            {/* ClassStepper controla a UI de classe/subclasse e magias */}
-          </>
-        )}
+        
 
-          {step === 4 && (
-            <>
-              <label className={styles.label}>Alinhamento:</label>
-              <div className={styles.panel}>
-                <div className={styles.panelTitle}>Selecione um alinhamento</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                  {[
-                    ['lawful-good','neutral-good','chaotic-good'],
-                    ['lawful-neutral','neutral','chaotic-neutral'],
-                    ['lawful-evil','neutral-evil','chaotic-evil'],
-                  ].flat().map((idx) => {
-                    const a = alignmentMap[idx] || alignments.find(x=>x.index===idx);
-                    const active = alignmentKey === idx;
-                    return (
-                      <button key={idx} type="button" onClick={()=>setAlignmentKey(idx)} className={`${styles.stepTab} ${active ? styles.active : ''}`}>
-                        {a?.name || idx}
-                      </button>
-                    );
-                  })}
-                </div>
-                {!!alignmentDetails?.desc && (
-                  <div className={styles.small} style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>{alignmentDetails.desc}</div>
-                )}
-              </div>
-            </>
-          )}
+          {/* Step 4 handled by StepAlignment component above */}
 
-          {step === 5 && (
+          {wizardCurrentStepId === 5 && (
             <>
               <DialogDescription>Equipamentos</DialogDescription>
               <label className={styles.label}>Nome do Personagem:</label>
-              <Input value={name} onChange={(e)=>setName(e.target.value)} required />
+              <Input
+                value={name}
+                onChange={(e)=>setNameW(e.target.value)}
+                onBlur={() => saveDraft(6)}
+                required
+              />
               <hr className={styles.divider}/>
               <DialogDescription>Resumo</DialogDescription>
-              <div>Raça/Sub‑raça: {races.find(r=>r.id===raceId)?.name} {subRaceId ? `/ ${subRaces.find(s=>s.id===subRaceId)?.name}`: ''}</div>
-              <div>Classe/Subclasse: {klasses.find(k=>k.id===klassId)?.name} {classSubclassId ? `/ ${(() => { const ruleKey = CLASS_NAME_MAP[klasses.find(k=>k.id===klassId)?.name] || ''; const opts = (classRules[ruleKey]?.subclass?.options)||{}; const o = Object.values(opts).find(x=>x.id===classSubclassId); return o?.name || ''; })()}`: ''} (Nível {level})</div>
-              <div>Alinhamento: {alignmentMap[alignmentKey]?.name || alignmentKey}</div>
+              <div>Raça/Sub‑raça: {races.find(r=>String(r.id)===String(wizardState.race?.raceId))?.name} {wizardState.race?.subRaceId ? `/ ${subRaces.find(s=>String(s.id)===String(wizardState.race.subRaceId))?.name}`: ''}</div>
+              <div>Classe/Subclasse: {klasses.find(k=>String(k.id)===String(wizardState.klass?.klassId))?.name} {wizardState.klass?.classSubclassId ? `/ ${subclassNameById(wizardState.klass.classSubclassId)}`: ''} (Nível {effLevel})</div>
+              <div>Alinhamento: {alignmentMap[wizardState.meta?.alignmentKey]?.name || wizardState.meta?.alignmentKey}</div>
               <div>Atributos finais: FOR {eff(str,'str')} DES {eff(dex,'dex')} CON {eff(con,'con')} INT {eff(intA,'int')} SAB {eff(wis,'wis')} CAR {eff(cha,'cha')}</div>
               <div>
-                <strong>Cantrips:</strong> {[...pickedCantrips.map(s=>s.name), ...featCantrips].filter(Boolean).join(', ') || 'Nenhum'}
+                <strong>Cantrips:</strong> {[...(wizardState.klass?.pickedCantrips || []).map(s=>s.name), ...featCantrips].filter(Boolean).join(', ') || 'Nenhum'}
                 {featCantrips.length > 0 && (
                   <span style={{ fontSize: '12px', color: '#666', marginLeft: '8px' }}>
                     (incluindo {featCantrips.length} de feats)
@@ -1772,7 +2122,7 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
                 )}
               </div>
               <div>
-                <strong>Magias:</strong> {[...pickedSpells.map(s=>s.name), ...featSpells].filter(Boolean).join(', ') || 'Nenhuma'}
+                <strong>Magias:</strong> {[...(wizardState.klass?.pickedSpells || []).map(s=>s.name), ...featSpells].filter(Boolean).join(', ') || 'Nenhuma'}
                 {featSpells.length > 0 && (
                   <span style={{ fontSize: '12px', color: '#666', marginLeft: '8px' }}>
                     (incluindo {featSpells.length} de feats)
@@ -1783,24 +2133,24 @@ const PlayerCharacterFormDialog = ({ character, isOpen, onClose, onSave, inline 
             </>
           )}
         </form>
-        {step >= 1 && (
+        {wizardCurrentStepId >= 1 && (
         <AttributesSidePanel
-          str={str} setStr={setStr}
-          dex={dex} setDex={setDex}
-          con={con} setCon={setCon}
-          intA={intA} setIntA={setIntA}
-          wis={wis} setWis={setWis}
-          cha={cha} setCha={setCha}
+          str={str} setStr={setStrW}
+          dex={dex} setDex={setDexW}
+          con={con} setCon={setConW}
+          intA={intA} setIntA={setIntW}
+          wis={wis} setWis={setWisW}
+          cha={cha} setCha={setChaW}
           raceBonuses={raceBonuses}
           asiBonuses={asiBonuses}
           remainingPoints={remainingPoints}
-          abilityMethod={abilityMethod}
-          level={level}
+          abilityMethod={wizardState.race?.abilityMethod}
+          level={effLevel}
           classSavingThrows={klassRule?.saving_throws || []}
-          classSkillPicks={classSkillPicks}
+          classSkillPicks={effClassSkillPicks}
           backgroundProfs={backgroundProfs}
           raceSkillProfs={raceSkillProfIds}
-          rolledScores={rolledScores}
+          rolledScores={wizardState.race?.rolledScores}
           styles={styles}
         />
         )}

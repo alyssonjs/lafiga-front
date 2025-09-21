@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Tooltip from "./UI/Tooltip";
 
 function splitColumns(list = []) {
   const left = [];
@@ -9,58 +10,74 @@ function splitColumns(list = []) {
   return [left, right];
 }
 
-export default function KnownLevelPanel({ level = 0, spells = [], onSpellClick = () => {}, styles = {} }) {
+export default function KnownLevelPanel({ level = 0, spells = [], onSpellClick = () => {}, styles = {}, edit = false, selected = new Set(), onToggle = () => {}, isAlways = () => false, isSecret = () => false, isInvocation = () => false, isDomain = () => false, isCircle = () => false, isFeatKnown = () => false, getFeatSource = () => null }) {
   const title = level === 0 ? "Truques (Nv 0)" : `Nível ${level}`;
-  const visible = spells.slice(0, 3);
-  const rest = spells.slice(3);
-  const [vLeft, vRight] = splitColumns(visible);
-  const [rLeft, rRight] = splitColumns(rest);
+  const [left, right] = splitColumns(spells || []);
+  const normName = (it) => (typeof it === 'object' ? (it.name || it.id) : it);
 
   return (
     <div className={styles.knownPanel}>
       <div className={styles.knownHeader}>{title}</div>
-      {/* Top: first 3 visible (two columns) */}
-      <div className={styles.spellListGrid}>
+      <div className={styles.spellListGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <div className={styles.spellListCol}>
-          {vLeft.map((nm, idx) => (
-            <div key={`vL-${idx}`} className={styles.spellRow}>
-              <span className={styles.box}></span>
-              <button type="button" className={styles.linkLike} onClick={() => onSpellClick(nm)}>{nm}</button>
-            </div>
-          ))}
+          {left.map((item, idx) => {
+            const nm = normName(item);
+            const locked = (typeof item === 'object' && !!item.always_prepared) || isAlways(nm);
+            const checked = selected?.has(nm) || locked;
+            const domain = isDomain(nm);
+            return (
+              <div key={`L-${idx}`} className={styles.spellRow}>
+                {edit ? (
+                  <input type="checkbox" checked={checked} disabled={locked} onChange={() => onToggle(nm)} style={{ marginRight: 6 }} />
+                ) : (
+                  <span className={styles.box}></span>
+                )}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <button type="button" className={styles.linkLike} onClick={() => onSpellClick(nm)}>{nm}</button>
+                  {isSecret(nm) && <span className={styles.secretsTag}>Secrets</span>}
+                  {isInvocation(nm) && <span className={styles.invocationTag}>Invoc.</span>}
+                  {domain && <span className={styles.secretsTag}>Domínio</span>}
+                  {isCircle(nm) && <span className={styles.secretsTag}>Círculo</span>}
+                  {isFeatKnown(nm) && (
+                    <Tooltip content={(getFeatSource(nm) ? `Talento: ${getFeatSource(nm)}` : 'Concedido por talento')}>
+                      <span className={styles.talentTag}>Talento</span>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
         <div className={styles.spellListCol}>
-          {vRight.map((nm, idx) => (
-            <div key={`vR-${idx}`} className={styles.spellRow}>
-              <span className={styles.box}></span>
-              <button type="button" className={styles.linkLike} onClick={() => onSpellClick(nm)}>{nm}</button>
-            </div>
-          ))}
+          {right.map((item, idx) => {
+            const nm = normName(item);
+            const locked = (typeof item === 'object' && !!item.always_prepared) || isAlways(nm);
+            const checked = selected?.has(nm) || locked;
+            const domain = isDomain(nm);
+            return (
+              <div key={`R-${idx}`} className={styles.spellRow}>
+                {edit ? (
+                  <input type="checkbox" checked={checked} disabled={locked} onChange={() => onToggle(nm)} style={{ marginRight: 6 }} />
+                ) : (
+                  <span className={styles.box}></span>
+                )}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <button type="button" className={styles.linkLike} onClick={() => onSpellClick(nm)}>{nm}</button>
+                  {isSecret(nm) && <span className={styles.secretsTag}>Secrets</span>}
+                  {isInvocation(nm) && <span className={styles.invocationTag}>Invoc.</span>}
+                  {domain && <span className={styles.secretsTag}>Domínio</span>}
+                  {isCircle(nm) && <span className={styles.secretsTag}>Círculo</span>}
+                  {isFeatKnown(nm) && (
+                    <Tooltip content={(getFeatSource(nm) ? `Talento: ${getFeatSource(nm)}` : 'Concedido por talento')}>
+                      <span className={styles.talentTag}>Talento</span>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
-      {/* Rest in scrollable area */}
-      {rest.length > 0 && (
-        <div className={styles.knownScroll}>
-          <div className={styles.spellListGrid}>
-            <div className={styles.spellListCol}>
-              {rLeft.map((nm, idx) => (
-                <div key={`rL-${idx}`} className={styles.spellRow}>
-                  <span className={styles.box}></span>
-                  <button type="button" className={styles.linkLike} onClick={() => onSpellClick(nm)}>{nm}</button>
-                </div>
-              ))}
-            </div>
-            <div className={styles.spellListCol}>
-              {rRight.map((nm, idx) => (
-                <div key={`rR-${idx}`} className={styles.spellRow}>
-                  <span className={styles.box}></span>
-                  <button type="button" className={styles.linkLike} onClick={() => onSpellClick(nm)}>{nm}</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

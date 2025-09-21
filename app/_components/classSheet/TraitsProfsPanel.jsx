@@ -27,6 +27,7 @@ export default function TraitsProfsPanel({ tracosRaciais = [], meta = {} }) {
     const push = (name, src) => { if (!name) return; out.push({ name: String(name), src }); };
     (meta?.race_summary?.languages || []).forEach((l) => push(l, 'raça'));
     (meta?.background_summary?.languages || []).forEach((l) => push(l, 'background'));
+    (meta?.class_summary?.languages || []).forEach((l) => push(l, 'classe'));
     return out.filter((v, i, a) => a.findIndex(x => x.name === v.name) === i);
   })();
 

@@ -121,24 +121,40 @@ const StepBackground = ({
     setBackgroundName(found?.name || '');
     const skills = (found?.skills || []).map(s => ({ id: s, name: s }));
     setBackgroundProfs(skills);
-    
-    // Usar dados do backgroundIndexMap que já vêm do PlayerCharacterFormDialog
-    const local = backgroundIndexMap?.[val] || found;
-    console.log('local', local);
-    if (local) {
+    // Ignorar backgroundIndexMap/fallback: detalhes devem vir na própria option
+    if (found) {
       setBackgroundDetails({ 
-        name: local.name, 
-        desc: local.desc || local.description || '', 
-        tools: local.tools || [], 
-        skills: local.skills || [],
-        languages: local.languages || null,
-        equipment: local.equipment || [],
-        feature: local.feature || null
+        name: found.name, 
+        desc: found.desc || found.description || '', 
+        tools: found.tools || [], 
+        skills: found.skills || [],
+        languages: found.languages || null,
+        equipment: found.equipment || [],
+        feature: found.feature || null
       });
     } else {
       setBackgroundDetails(null);
     }
   };
+
+  // Pré-preencher detalhes quando backgroundKey já vier definido (ex.: rascunho)
+  useEffect(() => {
+    if (!backgroundKey) return;
+    const found = backgroundOptions.find(b => String(b.id) === String(backgroundKey));
+    if (!found) return;
+    setBackgroundName(found?.name || '');
+    const skills = (found?.skills || []).map(s => ({ id: s, name: s }));
+    setBackgroundProfs(skills);
+    setBackgroundDetails({
+      name: found.name,
+      desc: found.desc || found.description || '',
+      tools: found.tools || [],
+      skills: found.skills || [],
+      languages: found.languages || null,
+      equipment: found.equipment || [],
+      feature: found.feature || null
+    });
+  }, [backgroundKey, backgroundOptions]);
 
   // Notificar mudanças de validação
   useEffect(() => {
@@ -315,13 +331,13 @@ const StepBackground = ({
       )}
       
       {/* Fallback para quando não há detalhes completos */}
-      {backgroundKey && !backgroundDetails && (
+      {/* {backgroundKey && !backgroundDetails && (
         <div className={styles.backgroundFallback} style={{ marginTop: 12 }}>
           <div className={styles.small}>
             Proficiências do Background: {(backgroundProfs || []).map(s=> s?.name || s).join(', ') || '—'}
           </div>
         </div>
-      )}
+      )} */}
     </>
   );
 };

@@ -26,7 +26,7 @@
 .input:-webkit-autofill {
   background-color: var(--background);
   border: 4px solid var(--border);
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .input::placeholder {
@@ -34,7 +34,7 @@
 }
 
 .input:focus::placeholder {
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .input:focus-visible {

@@ -10,6 +10,8 @@ import styles from "../../_styles/character/CharacterForm.module.css";
 // Floating, minimizable chat widget with channels, DMs, auto-scroll, and commands (!d20+1 etc)
 export default function ChatWidget({ sheetId = null, characterId = null, characterName = null }) {
   // UI state
+  const [mounted, setMounted] = useState(false); // avoid SSR/client markup mismatch
+  const [hasToken, setHasToken] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   // Drawer UI state only
@@ -34,6 +36,15 @@ export default function ChatWidget({ sheetId = null, characterId = null, charact
   const defaultSlug = useMemo(() => 'general', []);
   const { role } = useAuth?.() || {};
   const equipModsRef = useRef(null);
+
+  // Mark mounted and snapshot auth token on client
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const t = (typeof window !== 'undefined') ? localStorage.getItem('token') : null;
+      setHasToken(!!t);
+    } catch (_) { setHasToken(false); }
+  }, []);
 
   const slugify = useCallback((s) => {
     if (!s) return '';
@@ -137,8 +148,8 @@ export default function ChatWidget({ sheetId = null, characterId = null, charact
   // Init and react to default slug or login changes
   useEffect(() => {
     (async () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (!token) return; // not logged in, keep widget hidden
+      if (!mounted || !hasToken) return; // not ready or not logged in
+      const token = (typeof window !== 'undefined') ? localStorage.getItem('token') : null;
       try {
         // Compute allowed slugs based on current character (if provided)
         let groupSlug = null;
@@ -179,7 +190,7 @@ export default function ChatWidget({ sheetId = null, characterId = null, charact
       }
     })();
     return () => closeSocket();
-  }, [defaultSlug, ensureDefaultChannel, loadMessages, openSocket, characterId, sheetId, characterName, slugify]);
+  }, [mounted, hasToken, defaultSlug, ensureDefaultChannel, loadMessages, openSocket, characterId, sheetId, characterName, slugify]);
 
   // Auto-scroll when messages grow
   useEffect(() => {
@@ -195,7 +206,7 @@ export default function ChatWidget({ sheetId = null, characterId = null, charact
     setActive(ch);
     activeIdRef.current = ch?.id || null;
     await loadMessages(ch);
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = (typeof window !== 'undefined') ? localStorage.getItem('token') : null;
     openSocket(token, ch);
   }, [loadMessages, openSocket]);
 
@@ -401,7 +412,7 @@ export default function ChatWidget({ sheetId = null, characterId = null, charact
   });
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  if (!token) return null; // Não renderiza para usuários anônimos
+  if (!mounted || !hasToken) return null; // Evita hidratação incorreta e não renderiza para anônimos
 
   if (!isOpen) {
     return (

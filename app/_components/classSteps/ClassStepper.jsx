@@ -3,9 +3,10 @@
 import { useState, useMemo } from "react";
 import Select from "../UI/Select";
 import Input from "../UI/Input";
-import Button from "../Button";
+import Button from "../UI/Button";
 import ClassLevelPlanner from "./ClassLevelPlanner";
 import styles from "../../_styles/character/CharacterForm.module.css";
+import { useSubclasses } from "../../_hooks/useSubclasses";
 
 const ClassStepper = ({
   klasses,
@@ -30,9 +31,11 @@ const ClassStepper = ({
   raceSpellsExtra = [],
   raceLockedSkillIds = [],
   raceSelectedFeatId = null,
+  raceFeatManeuvers = [],
   backgroundProfs = [],
   // Navegação/validação
   onProceedToFinalize,
+  onLevelUp,
   onCancel,
   onBack,
   showBack = true,
@@ -51,6 +54,25 @@ const ClassStepper = ({
   const klassRuleId = selectedKlass?.api_index || (selectedKlass ? CLASS_NAME_MAP[selectedKlass.name] : null);
   const rule = klassRuleId ? classRules[klassRuleId] : null;
 
+  // Load subclasses to compute additional required choices for current level
+  const { subclasses: apiSubclasses } = useSubclasses(selectedKlass?.id, klassRuleId);
+
+  // Hit Die helpers
+  const hitDieSides = () => {
+    try {
+      const raw = selectedKlass?.hit_die || 'd8';
+      const m = String(raw).match(/(\d+)/);
+      return m ? Number(m[1]) : 8;
+    } catch (_) { return 8; }
+  };
+  const conMod = useMemo(() => {
+    try { return Math.floor(((Number(abilityScores?.con)||10) - 10) / 2); } catch(_) { return 0; }
+  }, [abilityScores]);
+  const fixedHpGain = () => {
+    const d = hitDieSides();
+    return (Math.floor(d/2) + 1);
+  };
+
   const canLevelUpInfo = useMemo(() => {
     const reasons = [];
     if (!rule || !klassId) return { ok: false, reasons: ['Selecione uma classe'] };
@@ -65,9 +87,11 @@ const ClassStepper = ({
         if (count < needSkills) reasons.push(`Perícias da classe: faltam ${needSkills - count}`);
       }
       const instNeed = Number(rule?.tool_proficiencies?.instruments?.choose || 0);
-      if (instNeed > 0) {
+      const toolNeed = Number(rule?.tool_proficiencies?.choose || rule?.tool_proficiencies?.tools?.choose || 0);
+      const chooseTools = Math.max(instNeed, toolNeed);
+      if (chooseTools > 0) {
         const count = Array.isArray(classInstrumentPicks) ? classInstrumentPicks.length : 0;
-        if (count < instNeed) reasons.push(`Instrumentos: faltam ${instNeed - count}`);
+        if (count < chooseTools) reasons.push(`Ferramentas/Instrumentos: faltam ${chooseTools - count}`);
       }
     }
 
@@ -89,6 +113,70 @@ const ClassStepper = ({
       if (!chosen) reasons.push(`Subclasse: escolha obrigatória no nível ${subLvl}`);
     }
 
+    // Require HP gain choice for current level (from level 2 onwards)
+    if (curr >= 2) {
+      const hp = row?.hp_gain;
+      if (!(hp && (hp.method === 'fixed' || hp.method === 'roll'))) {
+        reasons.push('HP do nível: escolha rolar o dado de vida ou valor fixo');
+      }
+    }
+
+    // Additional subclass-driven choices (languages/tools/instruments/skills/fighting_style/maneuvers) for this level
+    try {
+      const chosen = row?.subclass_id || classSubclassId;
+      if (chosen) {
+        const hit = (apiSubclasses || []).find(s => String(s.id) === String(chosen));
+        const map = hit?.additional_choices_by_level || {};
+        const add = map[String(curr)] || map[curr] || {};
+        // languages
+        if (add.languages?.choose > 0) {
+          const need = Number(add.languages.choose) || 0;
+          const val = row?.languages || [];
+          const arr = Array.isArray(val) ? val : (val ? [val] : []);
+          if (arr.length < need) reasons.push(`Idiomas: faltam ${need - arr.length}`);
+        }
+        // skills/tools/instruments
+        ['skills','tools','instruments'].forEach((k) => {
+          const conf = add[k];
+          if (conf?.choose > 0) {
+            const need = Number(conf.choose) || 0;
+            const val = row?.[k] || [];
+            const arr = Array.isArray(val) ? val : (val ? [val] : []);
+            if (arr.length < need) reasons.push(`${k}: faltam ${need - arr.length}`);
+          }
+        });
+        // maneuvers (Battle Master)
+        if (add.maneuvers?.choose > 0) {
+          const need = Number(add.maneuvers.choose) || 0;
+          const val = row?.maneuvers || [];
+          const arr = Array.isArray(val) ? val : (val ? [val] : []);
+          if (arr.length < need) reasons.push(`Manobras: faltam ${need - arr.length}`);
+        }
+        // fighting_style
+        if (add.fighting_style?.choose > 0) {
+          const need = Number(add.fighting_style.choose) || 0;
+          const chosenFs = row?.fighting_style || classFightingStyle;
+          const arr = Array.isArray(chosenFs) ? chosenFs : (chosenFs ? [chosenFs] : []);
+          if (arr.length < need) reasons.push(`Estilo de Luta: faltam ${need - arr.length}`);
+        }
+
+        // Generic additional keys (e.g., totem_spirit, beast_aspect, totemic_attunement)
+        Object.entries(add || {}).forEach(([key, conf]) => {
+          if (['languages','skills','tools','instruments','fighting_style','cantrips','spells'].includes(key)) return;
+          const choose = Number(conf?.choose || 0);
+          if (choose > 0) {
+            const val = row?.[key] || [];
+            const arr = Array.isArray(val) ? val : (val ? [val] : []);
+            if (arr.length < choose) {
+              const labelMap = { totem_spirit: 'Totem Espiritual', beast_aspect: 'Aspecto da Besta', totemic_attunement: 'Sintonização Totêmica' };
+              const label = labelMap[key] || key;
+              reasons.push(`${label}: faltam ${choose - arr.length}`);
+            }
+          }
+        });
+      }
+    } catch (_) {}
+
     const lvlRow = (klassLevels || []).find((cl) => Number(cl.level) === curr) || {};
     const prevRow = (klassLevels || []).find((cl) => Number(cl.level) === (curr - 1)) || {};
     const canAt = Number(lvlRow?.spellcasting?.cantrips_known ?? (curr === 1 ? (rule?.spellcasting?.cantrips_known_at_1 || 0) : 0)) || 0;
@@ -106,8 +194,42 @@ const ClassStepper = ({
       if (picked < knownGrant) reasons.push(`Magias conhecidas: escolha ${knownGrant} (faltam ${knownGrant - picked})`);
     }
 
+    // Pré-requisitos de feats (se ASI do nível for feat)
+    try {
+      const asi = row?.asi;
+      if (asi && asi.mode === 'feat' && (asi.featId || asi.featName)) {
+        const fid = asi.featId || asi.featName;
+        const lower = (k) => Number(abilityScores?.[k] || 0);
+        const hasArmor = (cat) => {
+          const set = new Set();
+          (rule?.armor_proficiencies || []).forEach((v)=>{
+            const t = String(v||'').toLowerCase();
+            if (t.includes('leve') || t.includes('light')) set.add('light');
+            if (t.includes('média') || t.includes('media') || t.includes('medium')) set.add('medium');
+            if (t.includes('pesad') || t.includes('heavy')) set.add('heavy');
+            if (t.includes('escudo') || t.includes('shield')) set.add('shields');
+          });
+          return set.has(cat);
+        };
+        const hasCasting = Boolean(rule?.spellcasting);
+        let err = null;
+        if (['adepto_elemental','conjurador_de_batalha','sniper_magico','magico_iniciante'].includes(fid) && !hasCasting) err = 'requer conjuração';
+        if (fid === 'observador' && lower('wis') < 13) err = 'SAB 13';
+        if (fid === 'duelista_defensivo' && lower('dex') < 13) err = 'DES 13';
+        if (fid === 'sorrateiro' && lower('dex') < 13) err = 'DES 13';
+        if (fid === 'lider_inspirador' && lower('cha') < 13) err = 'CAR 13';
+        if (fid === 'imobilizador' && lower('str') < 13) err = 'FOR 13';
+        if (fid === 'conjurador_de_ritual' && (lower('int') < 13 && lower('wis') < 13)) err = 'INT 13 ou SAB 13';
+        if (fid === 'maestria_em_armadura_media' && !hasArmor('medium')) err = 'proficiência: armadura média';
+        if (fid === 'maestria_em_armadura_pesada' && !hasArmor('heavy')) err = 'proficiência: armadura pesada';
+        if (fid === 'protecao_moderada' && !hasArmor('light')) err = 'proficiência: armadura leve';
+        if (fid === 'protecao_pesada' && !hasArmor('medium')) err = 'proficiência: armadura média';
+        if (err) reasons.push(`Pré-requisito do talento não atendido (${err})`);
+      }
+    } catch (_) {}
+
     return { ok: reasons.length === 0, reasons };
-  }, [rule, klassId, level, classPicksByLevel, classSkillPicks, classInstrumentPicks, classFightingStyle, classSubclassId, klassLevels]);
+  }, [rule, klassId, level, classPicksByLevel, classSkillPicks, classInstrumentPicks, classFightingStyle, classSubclassId, klassLevels, apiSubclasses]);
 
   // Navigation is now handled by StepTabs component
 
@@ -117,7 +239,7 @@ const ClassStepper = ({
       <div className={styles.stepperNav} />
 
       {subStep === 0 && (
-        <div className={styles.stepContent}>
+      <div className={styles.stepContent}>
           {Array.isArray(backgroundProfs) && backgroundProfs.length > 0 && (
             <div className={styles.small} style={{ marginBottom: 8 }}>
               Proficiências do Background: {backgroundProfs.map((s)=> (s?.name || s)).join(', ')}
@@ -145,7 +267,7 @@ const ClassStepper = ({
 
           <div className={styles.levelControls}>
             <div className={styles.levelDisplay}>Nível atual: {level}</div>
-            <div className={styles.levelButtons}>
+          <div className={styles.levelButtons}>
               <Button
                 type="button"
                 variant="secondary"
@@ -197,12 +319,13 @@ const ClassStepper = ({
                 type="button"
                 variant="highlight"
                 disabled={!canLevelUpInfo.ok || !canLevelUp() || Number(level) >= 20}
-                onClick={() => {
+                onClick={async () => {
                   console.log('🔍 Level Up button clicked');
                   console.log('🔍 canLevelUp():', canLevelUp());
                   console.log('🔍 getLevelUpErrors():', getLevelUpErrors());
                   console.log('🔍 local canLevelUpInfo:', canLevelUpInfo);
                   console.log('🔍 disabled state:', !canLevelUp() || Number(level) >= 20);
+                  try { if (onLevelUp) await onLevelUp(); } catch (e) { console.warn('Falha ao salvar rascunho de Level Up', e); }
                   setLevel(Math.min(20, Number(level || 1) + 1));
                 }}
                 title={(() => {
@@ -216,6 +339,40 @@ const ClassStepper = ({
               </Button>
             </div>
           </div>
+
+          {/* HP gain for current level (from 2+) */}
+          {!!klassId && Number(level) >= 2 && (
+            <div className={styles.panel} style={{ marginTop: 8 }}>
+              <div className={styles.panelTitle}>Pontos de Vida deste nível</div>
+              {(() => {
+                const d = hitDieSides();
+                const avg = fixedHpGain();
+                const row = (classPicksByLevel || {})[Number(level)] || {};
+                const hp = row.hp_gain || null;
+                const setHp = (obj) => {
+                  const curr = Number(level) || 1;
+                  const next = { ...(classPicksByLevel || {}) };
+                  next[curr] = { ...(next[curr] || {}), hp_gain: obj };
+                  setClassPicksByLevel && setClassPicksByLevel(next);
+                };
+                return (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Button type="button" variant="secondary" onClick={() => setHp({ method: 'fixed', die: d, value: avg, total: avg + conMod })}>
+                      Fixo {avg} {conMod >= 0 ? `+${conMod}` : conMod} = {avg + conMod}
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => { const roll = Math.max(1, Math.ceil(Math.random()*d)); setHp({ method: 'roll', die: d, value: roll, total: roll + conMod }); }}>
+                      Rolar d{d} + {conMod >= 0 ? `+${conMod}` : conMod}
+                    </Button>
+                    {hp && (
+                      <div className={styles.small}>
+                        Escolha atual: {hp.method === 'fixed' ? `Fixo ${hp.value}` : `Rolou ${hp.value}`} {conMod >= 0 ? `+${conMod}` : conMod} = <strong>{hp.total}</strong>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           {(!canLevelUp() || !canLevelUpInfo.ok) && (
             <div className={styles.requirementsSection}>
@@ -255,6 +412,9 @@ const ClassStepper = ({
           raceCantripsExtra={raceCantripsExtra}
           raceSpellsExtra={raceSpellsExtra}
           raceSelectedFeatId={raceSelectedFeatId}
+          raceFeatManeuvers={raceFeatManeuvers}
+          backgroundProfs={backgroundProfs}
+          raceSkillProfs={raceLockedSkillIds}
         />
       )}
 

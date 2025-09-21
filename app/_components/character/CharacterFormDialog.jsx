@@ -247,7 +247,8 @@ const CharacterFormDialog = ({
         setError("Selecione raça e classe.");
         return;
       }
-      const payload = { name, background, group_id: groupId ? +groupId : null, user_id: userId };
+      // Admin create: default new characters to active unless explicitly changed later
+      const payload = { name, background, group_id: groupId ? +groupId : null, user_id: userId, status: 'active' };
       const response = isEdit
         ? await charactersApi.update(character.id, payload)
         : await charactersApi.create(payload);

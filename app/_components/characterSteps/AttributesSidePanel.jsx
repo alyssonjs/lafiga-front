@@ -7,7 +7,11 @@ import Select from "../UI/Select";
 const noopStyles = {};
 
 const mod = (v) => Math.floor((Number(v || 10) - 10) / 2);
-const fmtMod = (m) => (m >= 0 ? `+${m}` : `${m}`);
+const fmtMod = (m) => {
+  const v = Number(m);
+  if (!Number.isFinite(v)) return '+0';
+  return v >= 0 ? `+${v}` : `${v}`;
+};
 const abilityKey = { FOR: 'str', DES: 'dex', CON: 'con', INT: 'int', SAB: 'wis', CAR: 'cha' };
 
 const profBonusFor = (lvl) => {
@@ -24,7 +28,7 @@ const SKILLS = [
   { id: 'investigation',   name: 'Investigação',       ability: 'int' },
   { id: 'nature',          name: 'Natureza',           ability: 'int' },
   { id: 'religion',        name: 'Religião',           ability: 'int' },
-  { id: 'animal-handling', name: 'Trato com Animais',  ability: 'wis' },
+  { id: 'animal-handling', name: 'Lidar com Animais',  ability: 'wis' },
   { id: 'insight',         name: 'Intuição',           ability: 'wis' },
   { id: 'medicine',        name: 'Medicina',           ability: 'wis' },
   { id: 'perception',      name: 'Percepção',          ability: 'wis' },
@@ -44,7 +48,7 @@ const SKILL_NAME_TO_ID = {
   'Investigação': 'investigation',
   'Natureza': 'nature',
   'Religião': 'religion',
-  'Trato com Animais': 'animal-handling',
+  'Lidar com Animais': 'animal-handling',
   'Intuição': 'insight',
   'Medicina': 'medicine',
   'Percepção': 'perception',
@@ -191,6 +195,7 @@ const AttributesSidePanel = ({
   raceSkillProfs = [],
   featSkillProfs = [], // extra skill proficiencies granted by feats (names or ids)
   expertiseSkills = [], // skills with expertise (names or ids)
+  halfProfOnUntrained = false, // Jack of All Trades
   rolledScores = [], // e.g., [15,14,13,12,10,8]
   readOnly = false,
   embedded = false, // when true, adapts layout to be inside a Card
@@ -198,7 +203,11 @@ const AttributesSidePanel = ({
 }) => {
   const { user } = useAuth();
   const userName = (user && (user.name || user.username || user.email)) || 'Jogador';
-  const asNumber = (n) => Number(n || 0);
+  // Safe numeric coercion: treat non-numeric like '—' as 0 to avoid NaN in UI
+  const asNumber = (n) => {
+    const v = Number(n);
+    return Number.isFinite(v) ? v : 0;
+  };
   const abilityScores = useMemo(() => ({
     str: asNumber(str) + asNumber(raceBonuses.str) + asNumber(asiBonuses.str),
     dex: asNumber(dex) + asNumber(raceBonuses.dex) + asNumber(asiBonuses.dex),
@@ -250,16 +259,17 @@ const AttributesSidePanel = ({
 
   const skillsByAbility = useMemo(() => {
     const by = { str: [], dex: [], con: [], int: [], wis: [], cha: [] };
+    const half = halfProfOnUntrained ? Math.floor(profBonus / 2) : 0;
     SKILLS.forEach(sk => {
       const abScore = abilityScores[sk.ability];
       const isProf = proficientSkillIds.has(sk.id);
       const isExpert = expertiseSkillSet.has(sk.id);
       const profMult = isExpert ? 2 : (isProf ? 1 : 0);
-      const total = mod(abScore) + (profBonus * profMult);
+      const total = mod(abScore) + (profBonus * profMult) + (!isProf ? half : 0);
       by[sk.ability].push({ ...sk, total, isProf, isExpert });
     });
     return by;
-  }, [proficientSkillIds, expertiseSkillSet, abilityScores, profBonus]);
+  }, [proficientSkillIds, expertiseSkillSet, abilityScores, profBonus, halfProfOnUntrained]);
 
   // Assignment helpers when using rolled pool
   const pool = Array.isArray(rolledScores) ? rolledScores : [];

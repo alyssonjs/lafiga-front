@@ -41,7 +41,7 @@ const FeatsPanel = ({ feats = [], readOnly = true }) => {
                   </div>
                   
                   {selectedFeat?.id === feat.id && (
-                    <div className={styles.featDetails} style={{ marginTop: '8px', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                    <div className={styles.featDetails} style={{ marginTop: '8px', padding: '8px', backgroundColor: 'var(--medium)', borderRadius: '4px' }}>
                       {feat.description && (
                         <div style={{ marginBottom: '8px', fontStyle: 'italic' }}>
                           {feat.description}

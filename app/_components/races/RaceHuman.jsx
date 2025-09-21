@@ -51,6 +51,7 @@ const RaceHuman = ({ subRuleId, picks, setPicks, skillOptions = [], klasses = []
         excludeIds={[]}
         showModeToggle={true}
         defaultMode={(vhASI?.mode) || 'attributes'}
+        attributesLabel={'Selecione 2 atributos distintos (+1 em cada)'}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import "./globals.css";
 import Navbar from "./_components/navbar/Navbar";
+import Loader from "./_components/UI/Loader";
 import { AuthProvider } from './_context/AuthContext';
 import { ToastProvider } from './_context/ToastContext';
 export const metadata = {
@@ -20,9 +21,11 @@ export default function RootLayout({ children }) {
       <body className="pixellari">
         <AuthProvider>
           <ToastProvider>
-            <Navbar />
-            <main>{children}</main>
-            <div id="dialogRoot" />
+            <Loader>
+              <Navbar />
+              <main>{children}</main>
+              <div id="dialogRoot" />
+            </Loader>
           </ToastProvider>
         </AuthProvider>
       </body>

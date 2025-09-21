@@ -116,7 +116,7 @@
 
 .label {
   font-size: 16px;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .inputText {
@@ -202,6 +202,12 @@
 .form .stepTab.completed { border-color: var(--medium); }
 
 .racePreview { font-size: 0.9rem; display: grid; gap: 6px; }
+.previewDescription { font-size: 0.95rem; color: var(--text-secondary); }
+.traitsList { margin: 4px 0 0 0; padding-left: 20px; display: grid; gap: 6px; }
+.traitName { font-weight: 600; }
+.traitMeta { color: var(--text-secondary); font-style: italic; margin-left: 4px; }
+.traitDescription { margin-top: 2px; }
+.traitImpact { margin-top: 2px; color: var(--text-secondary); }
 .previewColumns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .previewTitle { font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; }
 .panel { 
@@ -304,7 +310,7 @@
   border: 1px solid var(--secondary);
   border-radius: 8px;
   text-align: center;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   background: rgba(0,0,0,0.03);
 }
 .activeStep {
@@ -313,7 +319,7 @@
   border-color: var(--primary);
 }
 /* Variant when inside the primary form */
-.form .stepperNav .step { background: rgba(255,255,255,0.15); border-color: var(--light); color: var(--text-primary); }
+.form .stepperNav .step { background: rgba(255,255,255,0.15); border-color: var(--light); color: var(--text-secondary); }
 .form .stepperNav .activeStep { background: var(--light); color: var(--primary); border-color: var(--light); }
 .stepContent {
   display: flex;
@@ -329,7 +335,7 @@
   box-sizing: border-box;
 }
 .sidePanel {
-  width: 280px;
+  width: 350px;
   min-width: 280px;
   background: var(--medium);
   border: 1px solid var(--secondary);
@@ -340,7 +346,8 @@
   overflow: visible; /* Permitir que o conteúdo seja visível */
   box-sizing: border-box;
   color: var(--default);
-  max-height: calc(100vh - 100px); /* Limitar altura para evitar overflow vertical */
+  max-height: 100%; /* Limitar altura para evitar overflow vertical */
+  overflow: scroll;
 }
 .sidePanelEmbedded {
   width: 100%;
@@ -681,6 +688,13 @@
 .conjBoxRow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
 .conjBox { position: relative; border: 1px solid var(--secondary); border-radius: 10px; background: var(--light); padding: 40px 8px 12px; display: grid; gap: 8px; justify-items: center; }
 .conjPills { position: absolute; top: 8px; left: 8px; right: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+/* Extra top padding for boxes with 3+ pills (two rows) */
+.conjBoxTall { padding-top: 76px; }
+@media (max-width: 480px) {
+  .conjBoxTall { padding-top: 104px; }
+}
+/* Informative note text inside conj sections (wrappable) */
+.conjNote { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.3; white-space: normal; text-align: center; }
 .pill { border: 1px solid var(--secondary); border-radius: 999px; padding: 2px 8px; display: flex; align-items: center; justify-content: space-between; background: var(--lighter); font-size: 0.72rem; }
 .pill { border: 1px solid var(--secondary); border-radius: 999px; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; background: var(--lighter); font-size: 0.75rem; }
 .radioGroup {
@@ -748,7 +762,7 @@
 .levelButton:hover {
   background: var(--light);
   border-color: var(--primary);
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 .levelButtonActive {
   background: var(--primary);
@@ -768,8 +782,10 @@
 .featureHeader { font-weight: 700; color: var(--highlight); margin-bottom: 2px; }
 .featureSidebar { display: flex; flex-direction: column; gap: 12px; }
 .featureSection { margin-bottom: 12px; }
-.talentTag { margin-left: 6px; background: var(--highlight); color: var(--default); border-radius: 6px; padding: 1px 6px; font-size: 11px; }
+.talentTag { margin-left: 6px; background: var(--highlight); color: var(--text-primary); border-radius: 6px; padding: 1px 6px; font-size: 11px; }
 .raceTag { margin-left: 6px; background: var(--secondary); color: var(--default); border-radius: 6px; padding: 1px 6px; font-size: 11px; }
+.secretsTag { margin-left: 6px; background: var(--accent); color: var(--default); border-radius: 6px; padding: 1px 6px; font-size: 11px; }
+.invocationTag { margin-left: 6px; background: var(--primary); color: var(--default); border-radius: 6px; padding: 1px 6px; font-size: 11px; }
 .pillList { display: flex; flex-wrap: wrap; gap: 6px; }
 .spellPill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--secondary); border-radius: 999px; background: var(--light); color: var(--default); }
 .levelCard { border: 1px solid var(--secondary); border-radius: 10px; background: rgba(0,0,0,0.12); padding: 8px; margin: 8px 0; }
@@ -796,7 +812,7 @@
 .ribbon:before { left: -10px; border-right: none; border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
 .ribbon:after { right: -10px; border-left: none; border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
 .ribbonLabel { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px; }
-.ribbonValue { font-size: 3.1rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ribbonValue { font-size: 3.1rem; font-weight: 700; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .infoBoard { grid-area: info; border: 1px solid var(--secondary); border-radius: 12px; background: var(--light); padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .infoCell { display: flex; flex-direction: column; gap: 4px; }
@@ -1088,4 +1104,157 @@
 
 @media (max-width: 900px) {
   .twoColSplit { grid-template-columns: 1fr; }
+}
+
+/* Feat Description Styles */
+.featDescription {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--secondary);
+  border-radius: 6px;
+  border-left: 3px solid var(--highlight);
+}
+
+.featDescriptionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--highlight);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.featDescriptionText {
+  font-size: 13px;
+  color: var(--default);
+  line-height: 1.4;
+}
+
+/* Feat Features Styles */
+.featFeatures {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--secondary);
+  border-radius: 6px;
+  border-left: 3px solid var(--primary);
+}
+
+.featFeaturesTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--highlight);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.featFeature {
+  margin-bottom: 8px;
+  padding: 8px;
+  background: var(--medium);
+  border-radius: 4px;
+}
+
+.featFeature:last-child {
+  margin-bottom: 0;
+}
+
+.featFeatureName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--default);
+  margin-bottom: 4px;
+}
+
+.featFeatureDesc {
+  font-size: 12px;
+  color: var(--default);
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+/* Special Rules Styles */
+.specialRulesContainer {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--secondary);
+  border-radius: 8px;
+  border: 1px solid var(--primary);
+}
+
+.specialRulesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.specialRulesTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--highlight);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.specialRule {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--medium);
+  border-radius: 6px;
+  border-left: 3px solid var(--primary);
+}
+
+.specialRuleTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--default);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.specialRuleItem {
+  font-size: 13px;
+  color: var(--default);
+  margin-bottom: 4px;
+  padding-left: 16px;
+  line-height: 1.4;
+  position: relative;
+}
+
+.specialRuleItem:last-child {
+  margin-bottom: 0;
+}
+
+.specialRuleItem strong {
+  color: var(--highlight);
+  font-weight: 600;
+}
+
+.specialRuleItem::before {
+  content: '•';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  color: var(--highlight);
+}
+
+@media (max-width: 900px) {
+  .featDescription,
+  .featFeatures {
+    padding: 10px;
+  }
+  
+  .specialRulesContainer {
+    padding: 12px;
+  }
+  
+  .specialRule {
+    padding: 10px;
+  }
 }

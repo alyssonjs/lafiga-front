@@ -1,16 +1,11 @@
 @import "flatpickr/dist/flatpickr.min.css";
+@import url('https://fonts.googleapis.com/css2?family=New+Rocker&display=swap');
 
-@font-face {
-  font-family: "Pixellari";
-  src: url("/fonts/pixellari/Pixellari.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap; /* evita atraso de renderização */
-}
 
 :root {
   /* Paleta Principal */
   --font-pixel: "Pixellari", sans-serif;
+  --font-new-rocker: "New Rocker", system-ui;
   --default: #ffffff;
   --default-hover: #f0f0f0;
   --primary: #a21d21; /* Vermelho intenso - elementos principais */
@@ -46,9 +41,9 @@ html {
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--background);
-  color: var(--text-primary);
-  font-family: var(--font-pixel);   /* ← AQUI */
+  background-color: var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-new-rocker);
   font-size: 16px;
   text-shadow: rgba(0,0,0,.01) 0 0 1px;
 }
@@ -59,7 +54,7 @@ select {
   padding: 7px;
   background-color: var(--dark);
   border: 2px solid var(--secondary);
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 main {
@@ -70,6 +65,21 @@ main {
   text-rendering: optimizeLegibility;
   text-shadow: rgba(0,0,0,.01) 0 0 1px;
   font-size: 16px;
+}
+
+/* Loader overlay helpers */
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 0.5rem;
+  background: #0e0e10;
+  z-index: 9999;
+}
+
+.loader-hidden {
+  visibility: hidden;
 }
 
 ::-webkit-scrollbar {

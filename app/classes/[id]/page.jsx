@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { crudFor } from "../../_services/railsApi";
+import { apiClient } from "../../_lib/api/client";
 import styles from "../../_styles/character/CharacterForm.module.css";
 
 const Section = ({ title, children }) => (
@@ -24,20 +25,67 @@ export default function ClassShowPage() {
   const [subclasses, setSubclasses] = useState([]);
   const [spells, setSpells] = useState([]);
   const [error, setError] = useState(null);
+  const [resolvedId, setResolvedId] = useState(null);
 
+  // Slugify helper (PT-BR friendly)
+  const slugify = (str) => {
+    return String(str || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/[^\w]+/g, '')
+  };
+
+  // Resolve id that may be a slug (e.g., 'ladinotrapaceiroarcano') into numeric klass id
   useEffect(() => {
-    if (!id) return;
     (async () => {
       try {
-        const [{ klass }, { class_levels }, subRes, spellsRes] = await Promise.all([
-          klassesApi.getOne(id),
-          fetch(`/api/v1/public/klasses/${id}/levels`).then((r) => r.json()),
+        setError(null);
+        if (!id) { setResolvedId(null); return; }
+        // If already numeric, use directly
+        if (/^\d+$/.test(String(id))) { setResolvedId(String(id)); return; }
+        // Fetch all classes and try to match by slug prefix or api_index
+        const res = await klassesApi.getAll();
+        const list = Array.isArray(res.klasses) ? res.klasses : (Array.isArray(res) ? res : []);
+        // First try api_index exact (e.g., 'rogue')
+        let hit = list.find(k => String(k.api_index || '').toLowerCase() === String(id).toLowerCase());
+        if (!hit) {
+          const slug = slugify(id);
+          // Compute class slugs from translated names (PT-BR)
+          const withSlugs = list.map(k => ({ ...k, _slug: slugify(k.name || k.api_index || '') }));
+          // Exact slug match
+          hit = withSlugs.find(k => k._slug === slug);
+          // Prefix match (e.g., 'ladinotrapaceiroarcano' starts with 'ladino')
+          if (!hit) hit = withSlugs.find(k => slug.startsWith(k._slug));
+        }
+        if (hit && hit.id != null) {
+          setResolvedId(String(hit.id));
+        } else {
+          setResolvedId(null);
+          setError(`Classe não encontrada para identificador: ${id}`);
+        }
+      } catch (e) {
+        setResolvedId(null);
+        setError(e.message || 'Falha ao resolver classe');
+      }
+    })();
+  }, [id, klassesApi]);
+
+  useEffect(() => {
+    if (!resolvedId) return;
+    (async () => {
+      try {
+        const [klassRes, levelsRes, subRes, spellsRes] = await Promise.all([
+          klassesApi.getOne(resolvedId),
+          apiClient.get(`/api/v1/public/klasses/${resolvedId}/levels`),
           subKlassesApi.getAll(),
-          spellsApi.getAll({ klass_id: id }),
+          spellsApi.getAll({ klass_id: resolvedId }),
         ]);
-        setKlass(klass);
-        setLevels(class_levels || []);
-        const list = (subRes?.sub_klasses || []).filter((s) => String(s.klass_id) === String(id));
+        const klassObj = klassRes.klass || klassRes;
+        const levels = levelsRes.class_levels || levelsRes;
+        setKlass(klassObj);
+        setLevels(levels || []);
+        const list = (subRes?.sub_klasses || []).filter((s) => String(s.klass_id) === String(resolvedId));
         setSubclasses(list);
         setSpells(spellsRes?.spells || []);
       } catch (e) {
@@ -45,7 +93,7 @@ export default function ClassShowPage() {
         setError(e.message);
       }
     })();
-  }, [id]);
+  }, [resolvedId, klassesApi, subKlassesApi, spellsApi]);
 
   const byLevel = useMemo(() => {
     const map = {};
@@ -145,4 +193,3 @@ export default function ClassShowPage() {
     </div>
   );
 }
-

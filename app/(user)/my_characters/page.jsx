@@ -50,6 +50,12 @@ const CharactersPage = () => {
     console.log('Dados do personagem:', char);
     
     try {
+      // Se for draft, redireciona para o assistente de criação/edição
+      if (String(char.status) === 'draft') {
+        const step = char.current_step ? `&step=${char.current_step}` : '';
+        router.push(`/my_characters/new?cid=${char.id}${step}`);
+        return;
+      }
       // Verificar se o personagem tem sheet e classe
       // if (!char.sheet_id || !char.main_class) {
       //   console.log('Sem sheet ou classe - abrindo modal');
@@ -78,8 +84,9 @@ const CharactersPage = () => {
       // Verificar subclasse especiais com ficha própria
       const subName = char.main_class?.subclass?.name || '';
       const subNorm = subName.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
-      if (subNorm.includes('cavaleiro arcano')) finalSlug = 'guerreirocavaleiroarcano';
-      if (subNorm.includes('trapaceiro arcano')) finalSlug = 'ladinotrapaceiroarcano';
+      // Cavaleiro Arcano usa a página genérica do Guerreiro
+      if (subNorm.includes('cavaleiro arcano')) finalSlug = 'guerreiro';
+      // Trapaceiro Arcano não é classe independente — abrir como Ladino
       
       // Fallback: slug do nome PT
       if (!finalSlug) {
@@ -116,6 +123,7 @@ const CharactersPage = () => {
             key={char.id}
             character={char}
             onClick={() => handleCardClick(char)}
+            onEdit={String(char.status) !== 'draft' ? ((c) => router.push(`/my_characters/new?cid=${c.id}&mode=edit`)) : undefined}
           />
         ))}
       </div>

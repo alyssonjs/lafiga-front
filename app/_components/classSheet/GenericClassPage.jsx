@@ -15,7 +15,9 @@ import TraitsProfsPanel from "./TraitsProfsPanel";
 import VitalStatsPanel from "./VitalStatsPanel";
 import ConjurationPanel from "./ConjurationPanel";
 import FighterPanel from "./FighterPanel";
+import BarbarianPanel from "./BarbarianPanel";
 import FighterCombatExtras from "./FighterCombatExtras";
+import BattleMasterPanel from "./BattleMasterPanel";
 import WarlockInvocationsPanel from "./WarlockInvocationsPanel";
 import WarlockArcanumPanel from "./WarlockArcanumPanel";
 import DruidWildShapesPanel from "./DruidWildShapesPanel";
@@ -27,6 +29,11 @@ import WeaponsPanel from "./WeaponsPanel";
 import ChatWidget from "../chat/ChatWidget";
 import FeatsPanel from "../characterSteps/FeatsPanel";
 import styles from "../../_styles/character/CharacterForm.module.css";
+import MonkDisciplinesPanel from "./MonkDisciplinesPanel";
+import MonkShadowArtsPanel from "./MonkShadowArtsPanel";
+import MonkOpenHandPanel from "./MonkOpenHandPanel";
+import PaladinOathPanel from "./PaladinOathPanel";
+import RangerCompanionPanel from "./RangerCompanionPanel";
 
 // Responsive helper: detect mobile viewport
 function useIsMobile(breakpoint = 768) {
@@ -117,8 +124,152 @@ export default function GenericClassPage() {
   const [knownByLevel, setKnownByLevel] = useState({});
   const [spellDict, setSpellDict] = useState({});
   const [preparedByLevel, setPreparedByLevel] = useState({});
+  const [autoPreparedIds, setAutoPreparedIds] = useState([]);
+  const [circleSpellIds, setCircleSpellIds] = useState([]);
+  // Merge helper: ensure Druid Land terrain circle spells appear as always-prepared even if BE summary omitted them
+  const mergeTerrainAlwaysPrepared = async (s, pbIn) => {
+    try {
+      const main = (s.klasses || []).reduce((a,b)=> (a && a.level > b.level) ? a : b, null);
+      if (!main) return { pb: pbIn, auto: autoPreparedIds };
+      const cname = String(main.name || '').toLowerCase();
+      if (!(cname.includes('druida') || cname.includes('druid'))) return { pb: pbIn, auto: autoPreparedIds };
+      const subName = String(main.subclass?.name || '').toLowerCase();
+      const isLand = subName.includes('terra') || subName.includes('land');
+      if (!isLand) return { pb: pbIn, auto: autoPreparedIds };
+      // Determine chosen terrain from metadata
+      const per = (metaState?.class_choices?.per_level) || {};
+      let pickedTerrain = null;
+      try {
+        const keys = Object.keys(per).map(n=>Number(n)).sort((a,b)=>a-b);
+        for (const lv of keys) {
+          const row = per[String(lv)] || per[lv] || {};
+          const t = row.terrain || row.terreno || null;
+          if (t) { pickedTerrain = (typeof t === 'object') ? (t.id || t.name || String(t)) : String(t); }
+        }
+      } catch(_) {}
+      if (!pickedTerrain) return { pb: pbIn, auto: autoPreparedIds };
+      // Fetch subclass list to obtain mapping by terrain
+      const klassId = main.id;
+      if (!klassId) return { pb: pbIn, auto: autoPreparedIds };
+      const subRes = await apiClient.get(`/api/v1/public/klasses/${klassId}/subclasses`);
+      const subs = subRes?.subclasses || [];
+      const hit = subs.find(sc => String(sc?.name || '').toLowerCase() === subName);
+      const byTerrain = hit?.always_prepared_by_terrain || {};
+      if (!byTerrain || Object.keys(byTerrain).length === 0) return { pb: pbIn, auto: autoPreparedIds };
+      const map = byTerrain[pickedTerrain] || byTerrain[String(pickedTerrain).toLowerCase()] || null;
+      if (!map) return { pb: pbIn, auto: autoPreparedIds };
+      // Compose additions up to current level
+      const targetLvl = Number(main.level || 1);
+      const pb = { ...(pbIn || {}) };
+      const addIds = new Set();
+      const dict = spellDict || {};
+      const ensure = (lvl, entry) => {
+        const key = String(lvl);
+        pb[key] ||= [];
+        const exists = pb[key].some(sp => {
+          const a = (typeof sp === 'object') ? sp.name : sp;
+          return a === entry.name;
+        });
+        if (!exists) pb[key].push({ id: entry.id || null, name: entry.name, always_prepared: true, circle: true });
+        else {
+          // Marcar existente como circle=true se já estiver presente
+          pb[key] = pb[key].map(sp => {
+            const nm = (typeof sp === 'object') ? sp.name : sp;
+            if (nm === entry.name && typeof sp === 'object') return { ...sp, circle: true, always_prepared: (sp.always_prepared ?? true) };
+            return sp;
+          });
+        }
+      };
+      const levels = Object.keys(map).map(n=>Number(n)).sort((a,b)=>a-b);
+      for (const lvl of levels) {
+        if (lvl > targetLvl) continue;
+        const arr = map[String(lvl)] || [];
+        for (const nm of (arr || [])) {
+          let id = dict?.[nm]?.id || null;
+          if (id == null) {
+            try {
+              const res = await apiClient.get('/api/v1/public/spells', { params: { name: nm } });
+              const hits = Array.isArray(res.spells) ? res.spells : [];
+              const hit = hits.find(sp => String(sp?.name || '').toLowerCase() === String(nm).toLowerCase());
+              if (hit && hit.id != null) { id = Number(hit.id); }
+            } catch(_) {}
+          }
+          if (id != null) addIds.add(Number(id));
+          ensure(lvl, { id, name: nm });
+        }
+      }
+      // Como é Druida, marcar todas always_prepared como circle (cobertura genérica)
+      try {
+        Object.keys(pb || {}).forEach((lvl) => {
+          pb[lvl] = (pb[lvl] || []).map((sp) => (sp && typeof sp === 'object' && sp.always_prepared) ? { ...sp, circle: (sp.circle || true) } : sp);
+        });
+      } catch(_) {}
+      return { pb, auto: Array.from(new Set([...(autoPreparedIds || []), ...Array.from(addIds)])), circle: Array.from(addIds) };
+    } catch(_) {
+      return { pb: pbIn, auto: autoPreparedIds, circle: [] };
+    }
+  };
+
+  // Deriva always-prepared a partir do summary já carregado (sem depender do reloadSummary)
+  useEffect(() => {
+    try {
+      const cat = summary?.spells?.catalog_by_id || {};
+      const byName = {};
+      Object.values(cat).forEach(sp => { if (sp?.name) byName[sp.name] = sp; });
+      const pb = summary?.spells?.prepared_by_level || {};
+      const ids = [];
+      Object.values(pb).forEach(arr => {
+        (arr || []).forEach(sp => {
+          if (sp && sp.always_prepared) {
+            if (sp.id != null) ids.push(Number(sp.id));
+            else if (sp.name && byName[sp.name]?.id != null) ids.push(Number(byName[sp.name].id));
+          }
+        });
+      });
+      if (ids.length) setAutoPreparedIds(Array.from(new Set(ids)));
+    } catch(_) {}
+  }, [knownByLevel]);
+
+  // Garante um refresh apenas na montagem (evita loops)
+  useEffect(() => { try { reloadSummary(); } catch(_) {} }, []);
   const [metaState, setMetaState] = useState({});
   const [summary, setSummary] = useState({});
+  const invocationSpellIds = useMemo(() => {
+    try {
+      // Map known invocations that grant spells → spell names
+      const invToSpells = {
+        'Armor of Shadows': ['Mage Armor'],
+        'Mask of Many Faces': ['Disguise Self'],
+        'Misty Visions': ['Silent Image'],
+        'Beast Speech': ['Speak with Animals'],
+        'Eldritch Sight': ['Detect Magic'],
+        'Otherworldly Leap': ['Jump'],
+        'Whispers of the Grave': ['Speak with Dead'],
+        'Visions of Distant Realms': ['Arcane Eye'],
+        'Mire the Mind': ['Slow'],
+        'Sculptor of Flesh': ['Polymorph'],
+        'Dreadful Word': ['Confusion'],
+        'Sign of Ill Omen': ['Bestow Curse'],
+        'Minions of Chaos': ['Conjure Elemental'],
+        'Ascendant Step': ['Levitate'],
+        'Bewitching Whispers': ['Compulsion'],
+        'Thief of Five Fates': ['Bane'],
+        'Master of Myriad Forms': ['Alter Self'],
+        'Fiendish Vigor': ['False Life']
+      };
+      const per = metaState?.class_choices?.per_level || {};
+      const names = [];
+      Object.values(per).forEach((row) => {
+        const arr = Array.isArray(row?.invocations) ? row.invocations : [];
+        arr.forEach((x) => { const nm = (x && typeof x === 'object') ? (x.name || x.id || String(x)) : String(x); if (nm) names.push(nm); });
+      });
+      const wantSpells = new Set();
+      names.forEach((inv) => { const list = invToSpells[inv]; if (Array.isArray(list)) list.forEach((s)=> wantSpells.add(s)); });
+      const ids = [];
+      wantSpells.forEach((nm) => { const sp = spellDict?.[nm]; if (sp?.id != null) ids.push(Number(sp.id)); });
+      return Array.from(new Set(ids));
+    } catch(_) { return []; }
+  }, [metaState, spellDict]);
   const [subclassName, setSubclassName] = useState('—');
   // Tooltip source data
   const [baseScores, setBaseScores] = useState(null);
@@ -133,6 +284,45 @@ export default function GenericClassPage() {
     } catch (_) { return false; }
   }, [knownByLevel]);
   const hasSlots = useMemo(() => (slotCounts || []).some((n) => Number(n) > 0), [slotCounts]);
+  // Map spell name -> feat name(s) that granted it (for tooltips)
+  const featSourcesBySpellName = useMemo(() => {
+    const map = {};
+    try {
+      (summary?.feats || []).forEach((f) => {
+        const fname = f?.name || 'Talento';
+        const ch = f?.choices || {};
+        const arr = []
+          .concat(Array.isArray(ch?.cantrips) ? ch.cantrips : (Array.isArray(f?.cantrips) ? f.cantrips : []))
+          .concat(Array.isArray(ch?.spells) ? ch.spells : (Array.isArray(f?.spells) ? f.spells : []));
+        arr.forEach((x) => {
+          const nm = (x && typeof x === 'object') ? (x.name || x.id) : x;
+          if (!nm) return;
+          const key = String(nm);
+          if (map[key]) {
+            // Avoid duplicates if multiple feats could grant same spell
+            if (!String(map[key]).split(', ').includes(fname)) map[key] = `${map[key]}, ${fname}`;
+          } else {
+            map[key] = fname;
+          }
+        });
+      });
+    } catch(_) {}
+    return map;
+  }, [summary]);
+  // Set com nomes de magias concedidas por talentos (para tag/tooltip)
+  const featKnownNames = useMemo(() => {
+    try {
+      const set = new Set();
+      (summary?.feats || []).forEach((f) => {
+        const ch = f?.choices || {};
+        const arr = []
+          .concat(Array.isArray(ch?.cantrips) ? ch.cantrips : (Array.isArray(f?.cantrips) ? f.cantrips : []))
+          .concat(Array.isArray(ch?.spells) ? ch.spells : (Array.isArray(f?.spells) ? f.spells : []));
+        arr.forEach((x) => { const nm = (x && typeof x === 'object') ? (x.name || x.id) : x; if (nm) set.add(String(nm)); });
+      });
+      return set;
+    } catch(_) { return new Set(); }
+  }, [summary]);
 
   useEffect(() => {
     (async () => {
@@ -248,53 +438,37 @@ export default function GenericClassPage() {
           } catch(_) {}
           setExpertiseSkills(exps);
         } catch(_) {}
-        const byLevel = s.spells?.known_by_level || {};
-        // byLevel: known spells per level from summary
-        setKnownByLevel(Object.fromEntries(Object.entries(byLevel).map(([lvl, arr]) => [lvl, (arr||[]).map(o=>o.name)])));
-        const lvl0 = (byLevel['0'] || []).length;
-        const others = Object.entries(byLevel).filter(([k]) => k !== '0').reduce((acc, [_, arr]) => acc + (arr||[]).length, 0);
+        // Pool de seleção:
+        // - Prepared (Clérigo/Druida/Paladino): lista completa da classe (available_by_level)
+        // - Prepared (Mago): apenas grimório (known_by_level)
+        // - Known casters: known_by_level
+        const isPreparedMode = (s.conjuration?.mode === 'prepared');
+        const isWizard = String(s.conjuration?.list_api || '').toLowerCase() === 'wizard';
+        const pool = isPreparedMode ? (isWizard ? (s.spells?.known_by_level || {}) : (s.spells?.available_by_level || {})) : (s.spells?.known_by_level || {});
+        setKnownByLevel(Object.fromEntries(Object.entries(pool).map(([lvl, arr]) => [lvl, (arr||[]).map(o => (typeof o === 'object' ? o.name : o))])));
+        // Counts based only on known_by_level (não usar available_by_level para contagem)
+        const knownOnly = s.spells?.known_by_level || {};
+        const lvl0 = (knownOnly['0'] || []).length;
+        const others = Object.entries(knownOnly).filter(([k]) => k !== '0').reduce((acc, [_, arr]) => acc + (arr||[]).length, 0);
         setCantrips(Array.from({length: lvl0}).map(()=>''));
         setMagias(Array.from({length: others}).map(()=>''));
         const catalog = s.spells?.catalog_by_id || {}; const byName = {};
         Object.values(catalog).forEach(sp => { if (sp?.name) byName[sp.name] = sp; });
         setSpellDict(byName);
-        // Prepared spells: build per-level map using catalog from summary
+        // Prepared spells diretamente do summary
         try {
-          const prepRes = await apiClient.get(`/api/v1/player/sheet_prepared_spells`, { params: { sheet_id: sheet.id } });
-          const list = (prepRes.sheet_prepared_spells || []);
-          const byLvl = {};
-          const missing = [];
-          list.forEach((row) => {
-            const sid = row.spell_id;
-            const sp = catalog[sid];
-            if (!sp) { missing.push(sid); return; }
-            const lvl = Number(sp.level || 0);
-            byLvl[lvl] ||= [];
-            byLvl[lvl].push(sp.name);
-          });
-          if (missing.length) {
-            const uniq = Array.from(new Set(missing.filter(Boolean)));
-            if (uniq.length) {
-              const resp = await apiClient.get('/api/v1/public/spells', { params: { ids: uniq } });
-              const spells = resp.spells || [];
-              spells.forEach(sp => {
-                catalog[sp.id] = { id: sp.id, name: sp.name, level: sp.level, desc: sp.desc, higher_level: sp.higher_level };
-                byName[sp.name] = { id: sp.id, name: sp.name, level: sp.level, desc: sp.desc, higher_level: sp.higher_level };
-              });
-              // rebuild byLvl entries for any missing ids
-              list.forEach((row) => {
-                const sid = row.spell_id;
-                const sp = catalog[sid];
-                if (!sp) return;
-                const lvl = Number(sp.level || 0);
-                byLvl[lvl] ||= [];
-                if (!byLvl[lvl].includes(sp.name)) byLvl[lvl].push(sp.name);
-              });
-              setSpellDict({ ...byName });
-            }
-          }
-          setPreparedByLevel(byLvl);
-        } catch (_) { setPreparedByLevel({}); }
+          const rawPb = s.spells?.prepared_by_level || {};
+          let pb = rawPb;
+          let autoIds = [];
+          Object.values(pb || {}).forEach(arr => (arr||[]).forEach(sp => { if (sp?.always_prepared && sp?.id != null) autoIds.push(Number(sp.id)); }));
+          // Fallback merge for Druid Land terrain spells
+          const merged = await mergeTerrainAlwaysPrepared(s, pb);
+          pb = merged.pb;
+          autoIds = Array.from(new Set([...(autoIds || []), ...((merged.auto)||[])]));
+          setPreparedByLevel(pb);
+          setAutoPreparedIds(autoIds);
+          setCircleSpellIds(merged.circle || []);
+        } catch(_) { setPreparedByLevel({}); setAutoPreparedIds([]); setCircleSpellIds([]); }
         const collected = (s.features || []).map(f => ({ id: f.id, lvl: f.level, name: f.name, desc: f.desc, show: (f.show !== false), pref_id: f.pref_id }));
         setFeatures(collected);
       } catch (e) {
@@ -303,12 +477,54 @@ export default function GenericClassPage() {
     })();
   }, [cid]);
 
+  // Cleric/Druid know the entire class list; show all spells grouped by level
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!classe?.id || !classe?.name) return;
+        // Se o summary já trouxe a lista disponível por nível, use-a e evite chamada extra
+        if (summary?.conjuration?.mode === 'prepared') {
+          const isWizard = String(summary?.conjuration?.list_api || '').toLowerCase() === 'wizard';
+          const avail = isWizard ? (summary.spells.known_by_level || {}) : (summary.spells.available_by_level || {});
+          setKnownByLevel(Object.fromEntries(Object.entries(avail).map(([lvl, arr]) => [lvl, (arr||[]).map(o => (typeof o === 'object' ? o.name : o))])));
+          const catalog = summary?.spells?.catalog_by_id || {};
+          const byName = {};
+          Object.values(catalog).forEach(sp => { if (sp?.name) byName[sp.name] = sp; });
+          setSpellDict(prev => ({ ...byName, ...prev }));
+          return;
+        }
+        const cname = String(classe.name || '').toLowerCase();
+        const isCleric = cname.includes('clérigo') || cname.includes('cleric') || cname.includes('clerigo');
+        const isDruid = cname.includes('druida') || cname.includes('druid');
+        if (!isCleric && !isDruid) return;
+
+        const res = await apiClient.get('/api/v1/public/spells', { params: { klass_id: classe.id } });
+        const spells = Array.isArray(res.spells) ? res.spells : [];
+        const byLvl = {};
+        const dict = { ...spellDict };
+        spells.forEach(sp => {
+          const lvl = Number(sp.level || 0);
+          byLvl[lvl] ||= [];
+          byLvl[lvl].push(sp.name);
+          // enrich dictionary for modal usage
+          dict[sp.name] = { id: sp.id, name: sp.name, level: sp.level, desc: sp.desc, higher_level: sp.higher_level };
+        });
+        setKnownByLevel(byLvl);
+        setSpellDict(dict);
+      } catch (_) { /* ignore */ }
+    })();
+  }, [classe?.id, classe?.name]);
+
   const subLabel = subclassLabelFor(classe?.name);
 
   const reloadSummary = async () => {
     try {
       const sid = summary?.sheet?.id;
       if (!sid) return;
+      // Materialize auto-prepared spells (class/subclass) before reading the summary
+      try {
+        await apiClient.get('/api/v1/player/sheet_prepared_spells', { params: { sheet_id: sid } });
+      } catch (_) { /* best-effort; ignore */ }
       const sumRes = await apiClient.get(`/api/v1/player/sheets/${sid}/summary`);
       const s = sumRes.summary || {};
       setSummary(s);
@@ -329,11 +545,48 @@ export default function GenericClassPage() {
         setSubclassName(main.subclass?.name || '—');
       }
       setSlotCounts((s.conjuration?.slots || Array(9).fill(0)).map(n=>Number(n)||0));
+
+      // Atualiza catálogos e prepared diretamente do summary
+      const catalog = s.spells?.catalog_by_id || {};
+      const byName = {};
+      Object.values(catalog).forEach(sp => { if (sp?.name) byName[sp.name] = sp; });
+      setSpellDict((prev) => ({ ...byName, ...prev }));
+      const rawPb = s.spells?.prepared_by_level || {};
+      const normalized = {};
+      Object.entries(rawPb).forEach(([lvl, arr]) => {
+        const dedup = [];
+        const seen = new Set();
+        (arr || []).forEach(sp => {
+          const key = sp?.id || sp?.name;
+          if (key && !seen.has(key)) { seen.add(key); dedup.push(sp); }
+        });
+        normalized[lvl] = dedup.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+      });
+      // Merge fallback for Druid Land
+      try {
+        const merged = await mergeTerrainAlwaysPrepared(s, normalized);
+        setPreparedByLevel(merged.pb);
+        const autoIds = [];
+        Object.values(merged.pb || {}).forEach(arr => (arr||[]).forEach(sp => { if (sp?.always_prepared && sp?.id != null) autoIds.push(Number(sp.id)); }));
+        setAutoPreparedIds(Array.from(new Set([ ...autoIds, ...((merged.auto) || []) ])));
+        setCircleSpellIds(merged.circle || []);
+      } catch(_) {
+        setPreparedByLevel(normalized);
+        const autoIds = [];
+        Object.values(normalized || {}).forEach(arr => (arr||[]).forEach(sp => { if (sp?.always_prepared && sp?.id != null) autoIds.push(Number(sp.id)); }));
+        setAutoPreparedIds(Array.from(new Set(autoIds)));
+        setCircleSpellIds([]);
+      }
+      // Atualiza available/known por nível para o painel
+      const isPreparedMode = (s.conjuration?.mode === 'prepared');
+      const isWizard = String(s.conjuration?.list_api || '').toLowerCase() === 'wizard';
+      const pool = isPreparedMode ? (isWizard ? (s.spells?.known_by_level || {}) : (s.spells?.available_by_level || {})) : (s.spells?.known_by_level || {});
+      setKnownByLevel(Object.fromEntries(Object.entries(pool).map(([lvl, arr]) => [lvl, (arr||[]).map(o => (typeof o === 'object' ? o.name : o))])));
     } catch (e) { /* noop */ }
   };
   
   return (
-    <div style={{ background: 'var(--dark)', padding: 16 }}>
+    <div style={{ background: 'var(--medium)', padding: 16 }}>
       <div style={{ maxWidth: 1300, margin: '0 auto' }}>
         <CharacterHeader ident={ident} classe={classe} nivel={nivel} subclassName={subclassName} subclassLabel={subLabel} />
 
@@ -408,6 +661,7 @@ export default function GenericClassPage() {
                         raceSkillProfs={raceSkills}
                         featSkillProfs={featSkillProfs}
                         expertiseSkills={expertiseSkills}
+                        halfProfOnUntrained={!!(summary?.proficiency_overrides?.half_proficiency_on_non_proficient_checks)}
                         rolledScores={[]}
                         styles={styles}
                       />
@@ -485,6 +739,7 @@ export default function GenericClassPage() {
                           raceSkillProfs={raceSkills}
                           featSkillProfs={featSkillProfs}
                           expertiseSkills={expertiseSkills}
+                          halfProfOnUntrained={!!(summary?.proficiency_overrides?.half_proficiency_on_non_proficient_checks)}
                           rolledScores={[]}
                           styles={styles}
                         />
@@ -516,10 +771,45 @@ export default function GenericClassPage() {
             {(() => {
               const cname = String(classe?.name || '').toLowerCase();
               if (cname.includes('guerreiro') || cname.includes('fighter')) {
+                const sub = String(subclassName || '').toLowerCase();
+                const isEK = sub.includes('cavaleiro') || sub.includes('eldritch');
+                const isBM = sub.includes('batalha') || sub.includes('battle');
                 return (
                   <>
                     <FighterPanel nivel={nivel} />
-                    <FighterCombatExtras meta={metaState} />
+                    {isEK && (
+                      isMobile ? (
+                        <AccordionSection title="Conjuração" defaultOpen>
+                          <ConjurationPanel
+                            nivel={nivel}
+                            atributos={atributos}
+                            cantripsCount={(cantrips||[]).length}
+                            spellsCount={(magias||[]).length}
+                            meta={metaState}
+                            summary={summary}
+                          />
+                        </AccordionSection>
+                      ) : (
+                        <ConjurationPanel
+                          nivel={nivel}
+                          atributos={atributos}
+                          cantripsCount={(cantrips||[]).length}
+                          spellsCount={(magias||[]).length}
+                          meta={metaState}
+                          summary={summary}
+                        />
+                      )
+                    )}
+                    {isBM && (
+                      isMobile ? (
+                        <AccordionSection title="Superioridade em Combate">
+                          <BattleMasterPanel nivel={nivel} meta={metaState} summary={summary} />
+                        </AccordionSection>
+                      ) : (
+                        <BattleMasterPanel nivel={nivel} meta={metaState} summary={summary} />
+                      )
+                    )}
+                    <FighterCombatExtras meta={metaState} summary={summary} />
                   </>
                 );
               }
@@ -529,16 +819,12 @@ export default function GenericClassPage() {
                     {isMobile ? (
                       <>
                         <AccordionSection title="Combate" defaultOpen>
-                          <FighterPanel nivel={nivel} />
-                        </AccordionSection>
-                        <AccordionSection title="Extras de Combate">
-                          <FighterCombatExtras meta={metaState} />
+                          <BarbarianPanel nivel={nivel} />
                         </AccordionSection>
                       </>
                     ) : (
                       <>
-                        <FighterPanel nivel={nivel} />
-                        <FighterCombatExtras meta={metaState} />
+                        <BarbarianPanel nivel={nivel} />
                       </>
                     )}
                   </>
@@ -550,20 +836,83 @@ export default function GenericClassPage() {
                     {isMobile ? (
                       <>
                         <AccordionSection title="Conjuração" defaultOpen>
-                          <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} />
+                          <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} summary={summary} />
                         </AccordionSection>
                         <AccordionSection title="Arcanos Místicos">
                           <WarlockArcanumPanel nivel={nivel} meta={metaState} />
                         </AccordionSection>
                         <AccordionSection title="Invocações">
-                          <WarlockInvocationsPanel meta={metaState} />
+                          <WarlockInvocationsPanel nivel={nivel} meta={metaState} />
                         </AccordionSection>
                       </>
                     ) : (
                       <>
-                        <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} />
+                        <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} summary={summary} />
                         <WarlockArcanumPanel nivel={nivel} meta={metaState} />
-                        <WarlockInvocationsPanel meta={metaState} />
+                        <WarlockInvocationsPanel nivel={nivel} meta={metaState} />
+                      </>
+                    )}
+                  </>
+                );
+              }
+              if (cname.includes('monge') || cname.includes('monk')) {
+                const sub = String(subclassName || '').toLowerCase();
+                const isFourEl = (sub.includes('quatro') || sub.includes('four') || sub.includes('element'));
+                const isShadow = (sub.includes('sombra') || sub.includes('shadow'));
+                const isOpenHand = (sub.includes('mão') || sub.includes('mao') || sub.includes('open'));
+                return (
+                  <>
+                    {isMobile ? (
+                      <>
+                        <AccordionSection title="Recursos de Ki" defaultOpen>
+                          <ConjurationPanel
+                            nivel={nivel}
+                            atributos={atributos}
+                            cantripsCount={(cantrips||[]).length}
+                            spellsCount={(magias||[]).length}
+                            meta={metaState}
+                            summary={summary}
+                          />
+                        </AccordionSection>
+                        {isFourEl && (
+                          <AccordionSection title="Disciplinas">
+                            <MonkDisciplinesPanel meta={metaState} summary={summary} nivel={nivel} />
+                          </AccordionSection>
+                        )}
+                        {isShadow && (
+                          <AccordionSection title="Artes Sombrias">
+                            <MonkShadowArtsPanel summary={summary} />
+                          </AccordionSection>
+                        )}
+                        {isOpenHand && (
+                          <AccordionSection title="Mão Aberta">
+                            <MonkOpenHandPanel atributos={atributos} nivel={nivel} />
+                          </AccordionSection>
+                        )}
+                        <AccordionSection title="Extras de Combate">
+                          <CombatExtrasPanel meta={metaState} summary={summary} />
+                        </AccordionSection>
+                      </>
+                    ) : (
+                      <>
+                        <ConjurationPanel
+                          nivel={nivel}
+                          atributos={atributos}
+                          cantripsCount={(cantrips||[]).length}
+                          spellsCount={(magias||[]).length}
+                          meta={metaState}
+                          summary={summary}
+                        />
+                        {isFourEl && (
+                          <MonkDisciplinesPanel meta={metaState} summary={summary} nivel={nivel} />
+                        )}
+                        {isShadow && (
+                          <MonkShadowArtsPanel summary={summary} />
+                        )}
+                        {isOpenHand && (
+                          <MonkOpenHandPanel atributos={atributos} nivel={nivel} />
+                        )}
+                        <CombatExtrasPanel meta={metaState} summary={summary} />
                       </>
                     )}
                   </>
@@ -575,16 +924,66 @@ export default function GenericClassPage() {
                     {isMobile ? (
                       <>
                         <AccordionSection title="Conjuração" defaultOpen>
-                          <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} />
+                          <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} summary={summary} />
                         </AccordionSection>
                         <AccordionSection title="Formas Selvagens">
-                          <DruidWildShapesPanel meta={metaState} />
+                          <DruidWildShapesPanel meta={metaState} summary={summary} />
                         </AccordionSection>
                       </>
                     ) : (
                       <>
-                        <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} />
-                        <DruidWildShapesPanel meta={metaState} />
+                        <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} summary={summary} />
+                        <DruidWildShapesPanel meta={metaState} summary={summary} />
+                      </>
+                    )}
+                  </>
+                );
+              }
+              if (cname.includes('paladino') || cname.includes('paladin')) {
+                return (
+                  <>
+                    {isMobile ? (
+                      <>
+                        <AccordionSection title="Conjuração" defaultOpen>
+                          <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} summary={summary} />
+                        </AccordionSection>
+                        <AccordionSection title="Juramento">
+                          <PaladinOathPanel summary={summary} />
+                        </AccordionSection>
+                      </>
+                    ) : (
+                      <>
+                        <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} summary={summary} />
+                        <PaladinOathPanel summary={summary} />
+                      </>
+                    )}
+                  </>
+                );
+              }
+              if (cname.includes('patrulheiro') || cname.includes('ranger')) {
+                const sub = String(subclassName || '').toLowerCase();
+                const isBeastMaster = (sub.includes('best') || sub.includes('mestre'));
+                return (
+                  <>
+                    {isMobile ? (
+                      <>
+                        <AccordionSection title="Conjuração" defaultOpen>
+                          <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} summary={summary} />
+                        </AccordionSection>
+                        {isBeastMaster && (
+                          <AccordionSection title="Companheiro de Patrulha">
+                            <RangerCompanionPanel meta={metaState} summary={summary} />
+                          </AccordionSection>
+                        )}
+                        <AccordionSection title="Extras de Combate">
+                          <CombatExtrasPanel meta={metaState} summary={summary} />
+                        </AccordionSection>
+                      </>
+                    ) : (
+                      <>
+                        <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} summary={summary} />
+                        {isBeastMaster && (<RangerCompanionPanel meta={metaState} summary={summary} />)}
+                        <CombatExtrasPanel meta={metaState} summary={summary} />
                       </>
                     )}
                   </>
@@ -596,22 +995,24 @@ export default function GenericClassPage() {
                     {isMobile ? (
                       <>
                         <AccordionSection title="Conjuração" defaultOpen>
-                          <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} />
+                          <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} summary={summary} />
                         </AccordionSection>
                         <AccordionSection title="Metamagia">
-                          <SorcererMetamagicPanel meta={metaState} />
+                          <SorcererMetamagicPanel meta={metaState} sheetId={summary?.sheet?.id} nivel={nivel} />
                         </AccordionSection>
                       </>
                     ) : (
                       <>
-                        <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} />
-                        <SorcererMetamagicPanel meta={metaState} />
+                        <ConjurationPanel nivel={nivel} atributos={atributos} cantripsCount={(cantrips||[]).length} spellsCount={(magias||[]).length} meta={metaState} summary={summary} />
+                        <SorcererMetamagicPanel meta={metaState} sheetId={summary?.sheet?.id} nivel={nivel} />
                       </>
                     )}
                   </>
                 );
               }
               if (cname.includes('ladino') || cname.includes('rogue')) {
+                const sub = String(subclassName || '').toLowerCase();
+                const isArcaneTrickster = (sub.includes('arcano') || sub.includes('arcane'));
                 return (
                   <>
                     {isMobile ? (
@@ -619,14 +1020,38 @@ export default function GenericClassPage() {
                         <AccordionSection title="Ataque Furtivo" defaultOpen>
                           <SneakAttackPanel nivel={nivel} />
                         </AccordionSection>
+                        {isArcaneTrickster && (
+                          <AccordionSection title="Conjuração" defaultOpen>
+                            <ConjurationPanel
+                              nivel={nivel}
+                              atributos={atributos}
+                              cantripsCount={(cantrips||[]).length}
+                              spellsCount={(magias||[]).length}
+                              meta={metaState}
+                              summary={summary}
+                              preparedCount={(() => { try { return Object.values(preparedByLevel || {}).reduce((s,arr)=> s + (Array.isArray(arr)? arr.length : 0), 0); } catch(_){ return null; } })()}
+                            />
+                          </AccordionSection>
+                        )}
                         <AccordionSection title="Extras de Combate">
-                          <CombatExtrasPanel meta={metaState} />
+                          <CombatExtrasPanel meta={metaState} summary={summary} />
                         </AccordionSection>
                       </>
                     ) : (
                       <>
                         <SneakAttackPanel nivel={nivel} />
-                        <CombatExtrasPanel meta={metaState} />
+                        {isArcaneTrickster && (
+                          <ConjurationPanel
+                            nivel={nivel}
+                            atributos={atributos}
+                            cantripsCount={(cantrips||[]).length}
+                            spellsCount={(magias||[]).length}
+                            meta={metaState}
+                            summary={summary}
+                            preparedCount={(() => { try { return Object.values(preparedByLevel || {}).reduce((s,arr)=> s + (Array.isArray(arr)? arr.length : 0), 0); } catch(_){ return null; } })()}
+                          />
+                        )}
+                        <CombatExtrasPanel meta={metaState} summary={summary} />
                       </>
                     )}
                   </>
@@ -641,6 +1066,7 @@ export default function GenericClassPage() {
                     cantripsCount={(cantrips||[]).length}
                     spellsCount={(magias||[]).length}
                     meta={metaState}
+                    summary={summary}
                     preparedCount={(() => { try { return Object.values(preparedByLevel || {}).reduce((s,arr)=> s + (Array.isArray(arr)? arr.length : 0), 0); } catch(_){ return null; } })()}
                   />
                   </AccordionSection>
@@ -651,26 +1077,68 @@ export default function GenericClassPage() {
                     cantripsCount={(cantrips||[]).length}
                     spellsCount={(magias||[]).length}
                     meta={metaState}
+                    summary={summary}
                     preparedCount={(() => { try { return Object.values(preparedByLevel || {}).reduce((s,arr)=> s + (Array.isArray(arr)? arr.length : 0), 0); } catch(_){ return null; } })()}
                   />
                 )
               );
             })()}
 
-            {hasKnown && (
-              isMobile ? (
-                <AccordionSection title="Truques & Magias Conhecidas">
-                  <SpellsKnownPanel byLevel={knownByLevel} spellDict={spellDict} />
-                </AccordionSection>
-              ) : (
-                <Card disableHover bgVar="medium-hover" style={{ marginTop: 12 }}>
-                  <CardHeader>Truques & Magias Conhecidas</CardHeader>
-                  <CardContent>
-                    <SpellsKnownPanel byLevel={knownByLevel} spellDict={spellDict} />
-                  </CardContent>
-                </Card>
-              )
-            )}
+            {hasKnown && (() => {
+              const preparedCaster = (summary?.conjuration?.mode === 'prepared');
+              const preparedLimit = preparedCaster ? (summary?.conjuration?.prepared_limit ?? null) : null;
+              const sheetId = summary?.sheet?.id;
+
+              const Panel = (
+                <SpellsKnownPanel
+                  styles={styles}
+                  byLevel={preparedCaster ? preparedByLevel : knownByLevel}
+                  availableByLevel={preparedCaster ? knownByLevel : null}
+                  spellDict={spellDict}
+                  mode={preparedCaster ? 'prepared' : 'known'}
+                  preparedLimit={preparedLimit}
+                  sheetId={preparedCaster ? sheetId : null}
+                  autoPreparedIds={preparedCaster ? autoPreparedIds : []}
+                  onOptimisticPrepared={(map) => setPreparedByLevel(map)}
+                  featKnownNames={featKnownNames}
+                  featSourcesBySpellName={featSourcesBySpellName}
+                  maxSelectableLevel={(() => {
+                    try {
+                      // Deriva do summary.conjuration.slots (array tamanho 9)
+                      const slots = Array.isArray(summary?.conjuration?.slots) ? summary.conjuration.slots : [];
+                      let max = 0;
+                      for (let i = 0; i < 9; i++) { if (Number(slots[i] || 0) > 0) max = i + 1; }
+                      return max || null;
+                    } catch(_) { return null; }
+                  })()}
+                  secretsSpellIds={(() => {
+                    try {
+                      const per = metaState?.class_choices?.per_level || {};
+                      const all = [];
+                      Object.values(per).forEach((row) => {
+                        const arr = Array.isArray(row?.learn_any_class_spells) ? row.learn_any_class_spells : [];
+                        arr.forEach((s) => { const id = Number(s?.id || s); if (id) all.push(id); });
+                      });
+                      return Array.from(new Set(all));
+                    } catch(_) { return []; }
+                  })()}
+                  invocationSpellIds={invocationSpellIds}
+                  onChanged={reloadSummary}
+                />
+              );
+              return (
+                isMobile ? (
+                  <AccordionSection title="Truques & Magias Conhecidas">{Panel}</AccordionSection>
+                ) : (
+                  <Card disableHover bgVar="medium-hover" style={{ marginTop: 12 }}>
+                    <CardHeader>Truques & Magias Conhecidas</CardHeader>
+                    <CardContent>
+                      {Panel}
+                    </CardContent>
+                  </Card>
+                )
+              );
+            })()}
 
             {(() => {
               try {
@@ -681,13 +1149,46 @@ export default function GenericClassPage() {
               return (
                 isMobile ? (
                   <AccordionSection title="Magias Preparadas">
-                    <SpellsKnownPanel byLevel={preparedByLevel} spellDict={spellDict} />
+                    <SpellsKnownPanel
+                      byLevel={preparedByLevel}
+                      spellDict={spellDict}
+                      mode={'prepared'}
+                      autoPreparedIds={autoPreparedIds}
+                      circleSpellIds={circleSpellIds}
+                      invocationSpellIds={invocationSpellIds}
+                      featKnownNames={featKnownNames}
+                      featSourcesBySpellName={featSourcesBySpellName}
+                      secretsSpellIds={(() => {
+                        try {
+                          const per = metaState?.class_choices?.per_level || {};
+                          const all = [];
+                          Object.values(per).forEach((row) => {
+                            const arr = Array.isArray(row?.learn_any_class_spells) ? row.learn_any_class_spells : [];
+                            arr.forEach((s) => { const id = Number(s?.id || s); if (id) all.push(id); });
+                          });
+                          return Array.from(new Set(all));
+                        } catch(_) { return []; }
+                      })()}
+                    />
                   </AccordionSection>
                 ) : (
                   <Card disableHover bgVar="medium-hover" style={{ marginTop: 12 }}>
                     <CardHeader><CardTitle>Magias Preparadas</CardTitle></CardHeader>
                     <CardContent>
-                      <SpellsKnownPanel byLevel={preparedByLevel} spellDict={spellDict} styles={styles} />
+                      <SpellsKnownPanel byLevel={preparedByLevel} spellDict={spellDict} styles={styles} mode={'prepared'} autoPreparedIds={autoPreparedIds} circleSpellIds={circleSpellIds} featKnownNames={featKnownNames}
+                        secretsSpellIds={(() => {
+                          try {
+                            const per = metaState?.class_choices?.per_level || {};
+                            const all = [];
+                            Object.values(per).forEach((row) => {
+                              const arr = Array.isArray(row?.learn_any_class_spells) ? row.learn_any_class_spells : [];
+                              arr.forEach((s) => { const id = Number(s?.id || s); if (id) all.push(id); });
+                            });
+                            return Array.from(new Set(all));
+                          } catch(_) { return []; }
+                        })()}
+                        featSourcesBySpellName={featSourcesBySpellName}
+                      />
                     </CardContent>
                   </Card>
                 )
