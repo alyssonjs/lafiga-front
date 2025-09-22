@@ -34,3 +34,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Configurações do ESLint
+.eslintrc.json
+
+# Lockfile do NPM
+package-lock.json
+
+# Configurações do VS Code
+.vscode/
