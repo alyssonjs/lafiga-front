@@ -156,9 +156,13 @@ const ComponentsPage = () => {
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
         <Badge>Badge</Badge>
+        <Badge variant="primary">Primary</Badge>
         <Badge variant="secondary">Secondary</Badge>
-        <Badge variant="outline">Outline</Badge>
+        <Badge variant="highlight">Highlight</Badge>
+        <Badge variant="medium">Medium</Badge>
         <Badge variant="accent">Accent</Badge>
+        <Badge variant="dark">Dark</Badge>
+        <Badge>Um teste com um texto grande</Badge>
       </div>      
 
       <div style={{ display: "flex", gap: "1em", padding: "20px", justifyContent: "space-between"}}>

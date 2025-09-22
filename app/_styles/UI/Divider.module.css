@@ -23,5 +23,4 @@
   height: 10px;
   background: var(--divider-color, #333);
   pointer-events: none;
-  z-index: 2;
 }
