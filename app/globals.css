@@ -6,17 +6,22 @@
   --font-new-rocker: "New Rocker", system-ui;
   --default: #ffffff;
   --default-hover: #f0f0f0;
-  --primary: #a21d21; /* Vermelho intenso - elementos principais */
-  --primary-hover: #88181b;
-  --secondary: #72161a; /* Vermelho escuro - elementos secundários */
-  --secondary-hover: #72161a;
-  --accent: #dc8126; /* Laranja - destaques */
-  --accent-hover: #c97320;
-  --highlight: #f7c90b; /* Amarelo - elementos de atenção */
-  --highlight-hover: #d9af09;
-  --medium: #411117; /* Vinho - elementos estruturais */
-  --medium-hover: #300d12;
-  --dark: #2d2d2d; /* Preto azeitona - fundo principal */
+  --primary: #A21E22; /* Vermelho intenso - elementos principais */
+  --primary-hover: #87000D;
+  --primary-active: #510F11;
+  --secondary: #711519; /* Vermelho escuro - elementos secundários */
+  --secondary-hover: #600A12;
+  --secondary-active: #390A0D;
+  --accent: #DB8026; /* Laranja - destaques */
+  --accent-hover: #CC6100;
+  --accent-active: #6D4114;
+  --highlight: #F5C711; /* Amarelo - elementos de atenção */
+  --highlight-hover: #DBA700;
+  --highlight-active: #7A6308;
+  --medium: #3F1217; /* Vinho - elementos estruturais */
+  --medium-hover: #1F090B;
+  --medium-active: #161513;
+  --dark: #000000; /* Preto - fundo principal */
 
   --background: #2d2d2d;
   --foreground: #ffffff;
