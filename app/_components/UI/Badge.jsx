@@ -51,14 +51,22 @@ const Badge = ({ children, text, className = '', variant = '', ...props }) => {
     Z
   `;
 
+  if (width < 40) {
+    return (
+      <svg style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none' }} height={height}>
+        <text ref={textRef} fontSize={fontSize}>{badgeText}</text>
+      </svg>
+    );
+  }
+
   return (
     <svg
       ref={svgRef}
       className={`${styles['badge']} ${className}`}
       data-variant={variant}
-      width={width || 'auto'}
+      width={width}
       height={height}
-      viewBox={`0 0 ${width || 100} ${height}`}
+      viewBox={`0 0 ${width} ${height}`}
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
