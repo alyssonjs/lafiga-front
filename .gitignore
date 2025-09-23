@@ -43,3 +43,5 @@ package-lock.json
 
 # Configurações do VS Code
 .vscode/
+
+*.swp

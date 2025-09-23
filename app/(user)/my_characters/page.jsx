@@ -7,7 +7,7 @@ import CharacterCard from "../../_components/character/CharacterCard";
 import Button from "../../_components/UI/Button";
 import { useAuth } from "../../_context/AuthContext";
 import { crudFor } from "../../_services/railsApi";
-import styles from "../../_styles/characterPage/Characters.module.css";
+import styles from "../../_styles/characterPage/Character.module.css";
 
 const CharactersPage = () => {
   const [characters, setCharacters] = useState([]);

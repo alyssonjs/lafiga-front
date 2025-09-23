@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import styles from "../../_styles/charactersPage/CharactersPage.module.css";
+import styles from "../../_styles/characters/Characters.module.css";
 import Card, { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../_components/UI/Card";
 import Badge from "../../_components/UI/Badge";
 import Button from "../../_components/UI/Button";
