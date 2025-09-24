@@ -35,6 +35,13 @@
   --text-secondary: #fff;
   --glow-effect: 0 0 10px rgba(0, 230, 118, 0.5),
     0 0 20px rgba(0, 230, 118, 0.3); /* Efeito de brilho */
+
+  --navbar-height: 85px;
+
+  --drawer-width: 300px;
+  --drawer-width-mobile: 80vw;
+  --drawer-width-tablet: 50vw;
+  --drawer-width-large: 500px;
 }
 
 html {

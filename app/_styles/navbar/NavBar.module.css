@@ -4,14 +4,14 @@
   left: 0;
   right: 0;
   width: 100%;
-  height: 85px;
+  height: var(--navbar-height);
   z-index: 1;
   background-color: #242424;
 
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: inherit;  
+  font-family: inherit;
 }
 
 .navbarBrand {
@@ -52,13 +52,13 @@
   .navbar {
     justify-content: center; /* Centraliza os itens */
   }
-  
+
   .navbarBrand {
     position: absolute;
     left: 50%;
     transform: translateX(-50%); /* Centralização precisa */
   }
-  
+
   .navbarMenu {
     position: absolute;
     right: 1rem;
