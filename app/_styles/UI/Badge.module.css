@@ -5,6 +5,10 @@
   max-width: 100%;
   height: auto;
   shape-rendering: geometricPrecision;
+  flex-shrink: 0;
+  min-width: width;
+  max-width: "none";
+  display: "inline-block";
 }
 
 .badge-bg {

@@ -27,7 +27,6 @@ import {
 import Select from "../../../_components/UI/Select";
 import Divider from "../../../_components/UI/Divider";
 import Drawer from "../../../_components/UI/Drawer";
-import PushDrawer from "../../../_components/UI/PushDrawer";
 
 const ComponentsPage = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -83,27 +82,27 @@ const ComponentsPage = () => {
   return (
     <>
       <div>
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <Button size="lg">{`size="lg"`}</Button>
           <Button size="md">{`size="md"`}</Button>
           <Button size="sm">{`size="sm"`}</Button>
           <Button size="icon">{`i`}</Button>
         </div>
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <Button variant="primary" size="md">Voltar</Button>
           <Button variant="secondary" size="md">Ver Mais</Button>
           <Button variant="accent" size="md">Confirmar</Button>
         </div>
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <Button variant="highlight" size="sm">Cancelar</Button>
           <Button variant="medium" size="sm">Desfazer</Button>
           <Button variant="helper" size="md">Ajuda</Button>
         </div>
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <Input type="email" placeholder="Default" />
           <Input disabled type="email" placeholder="Disabled" />
         </div>
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <Card style={{ width: "300px" }}>
             <CardHeader>
               <CardTitle>Title</CardTitle>
@@ -139,13 +138,13 @@ const ComponentsPage = () => {
           </Card>
         </div>
 
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <Divider color="yellow" />   
           <Divider color="red" /> 
           <Divider />                   
         </div>
 
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <Select
             placeholder="MultipleSelect"
             options={options}
@@ -153,15 +152,15 @@ const ComponentsPage = () => {
           />
         </div>
         
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <DatePicker />
         </div>
 
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <Select placeholder="Select" options={options} />
         </div>
 
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <Badge>Badge</Badge>
           <Badge variant="primary">Primary</Badge>
           <Badge variant="secondary">Secondary</Badge>
@@ -231,7 +230,7 @@ const ComponentsPage = () => {
             </div>
           </Dropdown>
 
-          <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+          <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
             <Button onClick={() => setIsOpen(true)}>Show Dialog Modal</Button>
             {isOpen && (
               <Dialog onClose={() => setIsOpen(false)}>
@@ -257,7 +256,7 @@ const ComponentsPage = () => {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
           <Button onClick={() => setDrawerOverlayOpen(true)}>
             Abrir Drawer Overlay Left
           </Button>
@@ -274,6 +273,7 @@ const ComponentsPage = () => {
         <Drawer
           open={drawerOverlayOpen}
           onClose={() => setDrawerOverlayOpen(false)}
+          type="overlay"
           side="left"
           width="320px"
         >
@@ -286,6 +286,7 @@ const ComponentsPage = () => {
         <Drawer
           open={drawerOverlayRightOpen}
           onClose={() => setDrawerOverlayRightOpen(false)}
+          type="overlay"
           side="right"
           width="320px"
         >
@@ -311,7 +312,7 @@ const ComponentsPage = () => {
           }}
         >
           <h2>Conteúdo do Container</h2>
-          <p>Este container serve para demonstrar o PushDrawer dos dois lados.</p>
+          <p>Este container serve para demonstrar o Drawer dos dois lados.</p>
           <p>E pipipi popopo! E agora um lorem ipsum</p>
           <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod 
             tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
@@ -320,30 +321,32 @@ const ComponentsPage = () => {
             cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat 
             non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
         </div>
-        <PushDrawer
+        <Drawer
           open={drawerPushLeftOpen}
           onClose={() => setDrawerPushLeftOpen(false)}
+          type="push"
           side="left"
           width="var(--drawer-width)"
         >
           <div style={{ padding: "24px" }}>
-            <h3>PushDrawer Left</h3>
-            <p>Este PushDrawer empurra o conteúdo da página (lado esquerdo).</p>
+            <h3>Drawer Left</h3>
+            <p>Este Drawer empurra o conteúdo da página (lado esquerdo).</p>
             <Button onClick={() => setDrawerPushLeftOpen(false)}>Fechar</Button>
           </div>
-        </PushDrawer>
-        <PushDrawer
+        </Drawer>
+        <Drawer
           open={drawerPushOpen}
           onClose={() => setDrawerPushOpen(false)}
+          type="push"
           side="right"
           width="var(--drawer-width)"
         >
           <div style={{ padding: "24px" }}>
-            <h3>PushDrawer Right</h3>
-            <p>Este PushDrawer empurra o conteúdo da página (lado direito).</p>
+            <h3>Drawer Right</h3>
+            <p>Este Drawer empurra o conteúdo da página (lado direito).</p>
             <Button onClick={() => setDrawerPushOpen(false)}>Fechar</Button>
           </div>
-        </PushDrawer>
+        </Drawer>
       </div>
     </>
   );
