@@ -36,6 +36,8 @@ const ComponentsPage = () => {
   const [drawerOverlayRightOpen, setDrawerOverlayRightOpen] = useState(false);
   const [drawerPushOpen, setDrawerPushOpen] = useState(false);
   const [drawerPushLeftOpen, setDrawerPushLeftOpen] = useState(false);
+  const [drawerOverlayTopOpen, setDrawerOverlayTopOpen] = useState(false);
+  const [drawerOverlayBottomOpen, setDrawerOverlayBottomOpen] = useState(false);
 
   let options = [
     { id: 1, name: "Australia" },
@@ -269,6 +271,12 @@ const ComponentsPage = () => {
           <Button onClick={() => setDrawerPushOpen(true)}>
             Abrir Drawer Push Right
           </Button>
+          <Button onClick={() => setDrawerOverlayTopOpen(true)}>
+            Abrir Drawer Overlay Top
+          </Button>
+          <Button onClick={() => setDrawerOverlayBottomOpen(true)}>
+            Abrir Drawer Overlay Bottom
+          </Button>
         </div>
         <Drawer
           open={drawerOverlayOpen}
@@ -279,7 +287,7 @@ const ComponentsPage = () => {
         >
           <div style={{ padding: "24px" }}>
             <h3>Drawer Overlay Left</h3>
-            <p>Esse drawer aparece por cima dessa mizera aqui(lado esquerdo).</p>
+            <p>Esse drawer aparece por cima do conteúdo (lado esquerdo).</p>
             <Button onClick={() => setDrawerOverlayOpen(false)}>Fechar</Button>
           </div>
         </Drawer>
@@ -292,8 +300,34 @@ const ComponentsPage = () => {
         >
           <div style={{ padding: "24px" }}>
             <h3>Drawer Overlay Right</h3>
-            <p>E esse Drawer aparece por cima do conteúdo dessa peste (lado direito).</p>
+            <p>Esse drawer aparece por cima do conteúdo (lado direito).</p>
             <Button onClick={() => setDrawerOverlayRightOpen(false)}>Fechar</Button>
+          </div>
+        </Drawer>
+        <Drawer
+          open={drawerOverlayTopOpen}
+          onClose={() => setDrawerOverlayTopOpen(false)}
+          type="overlay"
+          side="top"
+          width="200px"
+        >
+          <div style={{ padding: "24px" }}>
+            <h3>Drawer Overlay Top</h3>
+            <p>Esse drawer aparece por cima do conteúdo (topo).</p>
+            <Button onClick={() => setDrawerOverlayTopOpen(false)}>Fechar</Button>
+          </div>
+        </Drawer>
+        <Drawer
+          open={drawerOverlayBottomOpen}
+          onClose={() => setDrawerOverlayBottomOpen(false)}
+          type="overlay"
+          side="bottom"
+          width="200px"
+        >
+          <div style={{ padding: "24px" }}>
+            <h3>Drawer Overlay Bottom</h3>
+            <p>Esse drawer aparece por cima do conteúdo (fundo).</p>
+            <Button onClick={() => setDrawerOverlayBottomOpen(false)}>Fechar</Button>
           </div>
         </Drawer>
       </div>
@@ -306,13 +340,13 @@ const ComponentsPage = () => {
             background: "#f7f7f7",
             minHeight: "200px",
             padding: "32px",
-            transition: "margin 0.3s cubic-bezier(.4,0,.2,1)",
+            transition: "margin 0.3s, padding 0.3s cubic-bezier(.4,0,.2,1)",
             marginLeft: drawerPushLeftOpen ? "var(--drawer-width)" : undefined,
             marginRight: drawerPushOpen ? "var(--drawer-width)" : undefined,
           }}
         >
           <h2>Conteúdo do Container</h2>
-          <p>Este container serve para demonstrar o Drawer dos dois lados.</p>
+          <p>Este container serve para demonstrar o Drawer dos quatro lados.</p>
           <p>E pipipi popopo! E agora um lorem ipsum</p>
           <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod 
             tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
