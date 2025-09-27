@@ -9,153 +9,206 @@
 }
 
 .selectedText {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-
   width: -webkit-fill-available;
-  border: 4px solid var(--border);
+  border: 2px solid var(--accent);
+  background-color: var(--dark);
   color: var(--text-secondary);
 
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.customSelectContainer[data-size="sm"] .selectedText {
+  padding: 8px 12px;
+  min-height: 32px;
+  font-size: 0.875rem;
+  border-width: 2px;
+}
+
+.customSelectContainer[data-size="md"] .selectedText {
+ padding: 12px 16px;
+  min-height: 40px;
+  font-size: 1rem;
+  border-width: 2px;
+}
+
+.customSelectContainer[data-size="lg"] .selectedText {
+  padding: 16px 20px;
+  min-height: 48px;
+  font-size: 1.125rem;
+  border-width: 2px;
+}
+
+.selectedText.active {
+  background-color: var(--accent) !important;
+  color: var(--text-primary) !important;
+}
+
+.selectedTextContent {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.controlsContainer {
+  display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  height: 100%;
 }
 
-/* compact size */
-.customSelectContainer[data-size="sm"] .selectedText,
-.selectedText[data-size="sm"] {
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  min-height: 28px;
-  font-size: 0.85rem;
-  border-width: 3px;
+.selectedText:hover:not(.disabled) {
+  background-color: var(--accent);
 }
 
-.selectedText[data-size="sm"]::after {
-  top: 12px;
+.selectedText.active:hover:not(.disabled) {
+  background-color: var(--accent-hover) !important;
 }
 
-.selectedText:focus {
-  outline: none;
-  border-color: var(--ring);
-  box-shadow: 0 0 0 2px var(--ring);
-  background-color: var(--foreground);
-  color: var(--text-primary);
-}
-
-.disabled,
-.selectedText.disabled {
-  cursor: not-allowed;
+.disabled {
+  cursor: not-allowed !important;
   opacity: 0.5; 
   pointer-events: none; 
   background-color: var(--secondary); 
   color: var(--text-secondary);
 }
 
-.selectedText.disabled::after {
-  border-top-color: var(--text-secondary);
+.triangleIcon {
+  width: 35px;
+  height: 20px;
+  transition: transform 0.2s ease;
+  color: currentColor;
+  flex-shrink: 0;
 }
-
-.selectedText::after {
-  content: "";
-  position: absolute;
-  right: 10px;
-  top: 16px;
-  border: 7px solid transparent;
-  border-color: #fff transparent transparent transparent;
-}
-
-.selectedText.active::after {
-  top: 8px;
-  border-color: transparent transparent #fff transparent;
-}
-
-/* .selectOptions {
-  position: absolute;
-  width: 100%;
-  padding: 4px;
-  margin-top: 4px;
-  border: 4px solid var(--border);
-  background: var(--secondary);
-} */
 
 .selectOptions {
   position: absolute;
-  top: 100%;
   left: 0;
   width: 100%;
-  border: 4px solid var(--border);
-  background: var(--secondary);
+  border: 2px solid var(--accent);
+  background: var(--dark);
   z-index: 1500;
   list-style: none;
-  padding: 4px;
-  margin-top: 4px;
+  padding: 0;
+  margin: 0;
   max-height: 200px;
   overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.selectOptions:not(.selectOptionsUp) {
+  top: 100%;
+  margin-top: -2px;
+  border-top: none;
 }
 
 .selectOptionsUp {
-  top: auto;
   bottom: 100%;
-  margin-bottom: 4px;
-  border: 4px solid var(--border);
-  z-index: 1500;
+  margin-bottom: -2px;
+  border-bottom: none;
+}
+
+.customSelectContainer[data-size="sm"] .selectOptions:not(.selectOptionsUp),
+.customSelectContainer[data-size="md"] .selectOptions:not(.selectOptionsUp),
+.customSelectContainer[data-size="lg"] .selectOptions:not(.selectOptionsUp) {
+  top: 100%;
+  margin-top: -2px;
+  border-top: none;
+}
+
+.customSelectContainer[data-size="sm"] .selectOptionsUp,
+.customSelectContainer[data-size="md"] .selectOptionsUp,
+.customSelectContainer[data-size="lg"] .selectOptionsUp {
+  bottom: 100%;
+  margin-bottom: -2px;
+  border-bottom: none;
 }
 
 .customSelectOption {
   list-style-type: none;
-  padding: 6px;
-  background: var(--secondary);
-  border: 4px solid transparent;
+  padding: 12px 16px;
+  background: var(--dark);
+  border-bottom: 1px solid var(--accent);
   cursor: pointer;
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+
+.customSelectContainer[data-size="sm"] .customSelectOption {
+  padding: 8px 12px;
+  min-height: 32px;
+  font-size: 0.875rem;
+}
+
+.customSelectContainer[data-size="lg"] .customSelectOption {
+  padding: 16px 20px;
+  min-height: 48px;
+  font-size: 1.125rem;
+}
+
+.customSelectOption:last-child {
+  border-bottom: none;
 }
 
 .customSelectOption:hover {
-  border: 4px solid var(--border);
   background-color: var(--medium);
   color: var(--text-secondary);
 }
 
-.badgeClose {
-  margin-left: 5px;
-  cursor: pointer;
-  line-height: 1;
+.customSelectOption.selected {
+  background-color: var(--dark);
+  color: var(--accent);
 }
 
-.badgeClose:hover {
-  color: #ff0000;
+.diamondIndicator {
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent);
+  transform: rotate(45deg);
+  flex-shrink: 0;
 }
 
-.selected {
-  background-color: #007bff;
-  color: white;
-}
-
-/* Single-line behavior for non-multiselect (prevents placeholder overflow) */
-.singleLine {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Clear button for single-select */
 .clearBtn {
-  position: absolute;
-  right: 28px; /* leave room for the caret */
-  top: 8px;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
-  font-size: 18px;
+  color: currentColor;
+  font-size: 22px;
   cursor: pointer;
   line-height: 1;
   padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
-.clearBtn:hover { color: var(--primary); }
+
+.clearBtn[data-size="sm"] {
+  font-size: 18px;
+}
+
+.clearBtn[data-size="lg"] {
+  font-size: 26px;
+}
+
+.clearBtn:hover { 
+  opacity: 0.8;
+}
+
+.customSelectContainer * {
+  box-sizing: border-box;
+}
+
+.customSelectContainer .selectedText,
+.customSelectContainer .customSelectOption {
+  display: flex;
+  align-items: center;
+}

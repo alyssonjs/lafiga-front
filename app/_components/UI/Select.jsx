@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import styles from "../../_styles/UI/Select.module.css";
-import Badge from "./Badge";
 
 /**
  * Select component
@@ -10,17 +9,17 @@ import Badge from "./Badge";
  * Props:
  *  - placeholder: string
  *  - options:     Array<{ id: string | number, name: string }>
- *  - multiselect: boolean
- *  - value:       multiselect ? array<option> : id
+ *  - value:       id of selected option
  *  - onChange:    function
- *  - disabled:    boolean (NEW) → when true the select is non‑interactive
+ *  - disabled:    boolean → when true the select is non‑interactive
+ *  - clearable:   boolean → show clear button when option is selected
+ *  - size:        string → "sm" | "md" | "lg"
  *  - ...props:    spread to root container (data‑attrs etc.)
  */
 
 const Select = ({
   placeholder = "Placeholder",
   options = [],
-  multiselect = false,
   value,
   onChange = () => {},
   disabled = false,
@@ -28,26 +27,21 @@ const Select = ({
   size = "md",
   ...props
 }) => {
-  // --- state --------------------------------------------------------------
-  const [selectedOptions, setSelectedOptions] = useState(() =>
-    multiselect ? (Array.isArray(value) ? value : []) : []
-  );
+  
   const [selectedOption, setSelectedOption] = useState(() =>
-    !multiselect && value != null ? options.find((o) => o.id === value) || null : null
+    value != null ? options.find((o) => o.id === value) || null : null
   );
   const [showOptionList, setShowOptionList] = useState(false);
   const [listDirection, setListDirection] = useState("down");
   const selectContainerRef = useRef(null);
 
-  // --- effects ------------------------------------------------------------
   useEffect(() => {
-    if (multiselect && value !== undefined) {
-      setSelectedOptions(Array.isArray(value) ? value : []);
-    }
-    if (!multiselect && value != null) {
+    if (value != null) {
       setSelectedOption(options.find((o) => o.id === value) || null);
+    } else {
+      setSelectedOption(null);
     }
-  }, [value, multiselect, options]);
+  }, [value, options]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -66,44 +60,58 @@ const Select = ({
     if (showOptionList && selectContainerRef.current) {
       const rect = selectContainerRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      const dropdownHeight = Math.min(options.length * 40, 200);
+      
+      // Ajusta a altura do dropdown baseado no size
+      let optionHeight;
+      switch (size) {
+        case 'sm':
+          optionHeight = 32; // mesma altura do item sm
+          break;
+        case 'lg':
+          optionHeight = 48; // mesma altura do item lg
+          break;
+        default:
+          optionHeight = 40; // altura padrão md
+      }
+      
+      const dropdownHeight = Math.min(options.length * optionHeight, 200);
       setListDirection(spaceBelow < dropdownHeight ? "up" : "down");
     }
-  }, [showOptionList, options.length]);
+  }, [showOptionList, options.length, size]); 
 
-  // --- handlers -----------------------------------------------------------
   const handleOptionClick = (opt) => {
     if (disabled) return;
-
-    if (multiselect) {
-      const exists = selectedOptions.some((o) => o.id === opt.id);
-      const newSelection = exists
-        ? selectedOptions.filter((o) => o.id !== opt.id)
-        : [...selectedOptions, opt];
-      setSelectedOptions(newSelection);
-      onChange(newSelection);
-    } else {
-      setSelectedOption(opt);
-      setShowOptionList(false);
-      onChange(opt.id);
-    }
+    
+    setSelectedOption(opt);
+    setShowOptionList(false);
+    onChange(opt.id);
   };
 
-  const removeSelectedOption = (id) => {
-    if (disabled) return;
-    const newSel = selectedOptions.filter((o) => o.id !== id);
-    setSelectedOptions(newSel);
-    onChange(newSel);
+  const handleClear = (e) => {
+    e.stopPropagation();
+    setSelectedOption(null);
+    onChange(null);
   };
 
-  const availableOptions = multiselect
-    ? options.filter((o) => !selectedOptions.some((s) => s.id === o.id))
-    : options;
+  const hasValue = !!selectedOption;
 
-  // --- render -------------------------------------------------------------
-  const hasValue = multiselect
-    ? Array.isArray(selectedOptions) && selectedOptions.length > 0
-    : !!selectedOption;
+  const TriangleIcon = ({ isOpen }) => (
+    <svg 
+      className={`${styles.triangleIcon} ${isOpen ? styles.open : ''}`}
+      viewBox="0 0 12 12" 
+      fill="currentColor"
+    >
+      {isOpen ? (
+        <polygon points="6,9 11,3 1,3" /> 
+      ) : (
+        <polygon points="6,9 11,3 1,3" /> 
+      )}
+    </svg>
+  );
+
+  const DiamondIndicator = () => (
+    <div className={styles.diamondIndicator}></div>
+  );
 
   return (
     <div
@@ -113,50 +121,32 @@ const Select = ({
       {...props}
     >
       <div
-        className={`${styles.selectedText} ${!multiselect ? styles.singleLine : ""} ${showOptionList ? styles.active : ""}`}
+        className={`${styles.selectedText} ${showOptionList ? styles.active : ""} ${
+          hasValue ? styles.hasValue : ""
+        }`}
         tabIndex={disabled ? -1 : 0}
         role="button"
         aria-disabled={disabled}
         onClick={() => !disabled && setShowOptionList((v) => !v)}
         data-size={size}
       >
-        {multiselect ? (
-          selectedOptions.length === 0 ? (
-            placeholder
-          ) : (
-            selectedOptions.map((o) => (
-              <Badge key={o.id} disabled={disabled}>
-                {o.name}
-                {!disabled && (
-                  <span
-                    className={styles.badgeClose}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeSelectedOption(o.id);
-                    }}
-                  >
-                    &times;
-                  </span>
-                )}
-              </Badge>
-            ))
-          )
-        ) : selectedOption ? (
-          selectedOption.name
-        ) : (
-          placeholder
-        )}
-
-        {!multiselect && clearable && hasValue && (
-          <button
-            type="button"
-            className={styles.clearBtn}
-            aria-label="Limpar seleção"
-            onClick={(e) => { e.stopPropagation(); setSelectedOption(null); onChange(null); }}
-          >
-            ×
-          </button>
-        )}
+        <span className={styles.selectedTextContent}>
+          {selectedOption ? selectedOption.name : placeholder}
+        </span>
+        
+        <div className={styles.controlsContainer}>
+          {clearable && hasValue && (
+            <button
+              type="button"
+              className={styles.clearBtn}
+              aria-label="Limpar seleção"
+              onClick={handleClear}
+            >
+              ×
+            </button>
+          )}
+          <TriangleIcon isOpen={showOptionList} />
+        </div>
       </div>
 
       {showOptionList && !disabled && (
@@ -165,13 +155,16 @@ const Select = ({
             listDirection === "up" ? styles.selectOptionsUp : ""
           }`}
         >
-          {availableOptions.map((opt) => (
+          {options.map((opt) => (
             <li
               key={opt.id}
-              className={styles.customSelectOption}
+              className={`${styles.customSelectOption} ${
+                selectedOption && selectedOption.id === opt.id ? styles.selected : ""
+              }`}
               onClick={() => handleOptionClick(opt)}
             >
-              {opt.name}
+              {selectedOption && selectedOption.id === opt.id && <DiamondIndicator />}
+              <span>{opt.name}</span>
             </li>
           ))}
         </ul>

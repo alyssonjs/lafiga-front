@@ -139,19 +139,22 @@ const ComponentsPage = () => {
       </div>
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Select
-          placeholder="MultipleSelect"
-          options={options}
-          multiselect
-        />
+        <div style={{width: "300px"}}>
+          <Select placeholder="small" options={options} size="sm" clearable />
+        </div>
+        <div style={{width: "300px"}}>
+          <Select placeholder="medium" options={options} size="md" clearable />
+        </div>
+        <div style={{width: "300px"}}>
+          <Select placeholder="large" options={options} size="lg" clearable />
+        </div>
+        <div style={{width: "300px"}}>
+          <Select placeholder="disabled" disabled />
+        </div>
       </div>
       
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
         <DatePicker />
-      </div>
-
-      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Select placeholder="Select" options={options} />
       </div>
 
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
