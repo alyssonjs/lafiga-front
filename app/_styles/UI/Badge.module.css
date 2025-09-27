@@ -1,74 +1,149 @@
+/* Badge SVG Theme Variables */
 .badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 9999px; 
-  border: 4px solid var(--border); 
-  padding: 2px 1.25rem; 
-  font-size: 0.75rem;
-  font-weight: 600; 
-  outline: none; 
-  background-color: var(--primary); 
-  color: var(--text-secondary); 
-  width: max-content;
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+  height: auto;
+  shape-rendering: geometricPrecision;
+  flex-shrink: 0;
+  min-width: width;
+  max-width: "none";
+  display: "inline-block";
+}
+
+.badge-bg {
+  fill: var(--default);
+  stroke: var(--dark);
+}
+
+.badge-text {
+  dominant-baseline: middle;
+  fill: var(--dark);
+}
+
+.badge-diamond {
+  fill: var(--dark);
+}
+
+.badge path {
+  shape-rendering: geometricPrecision;
+  transition: fill 0.2s, stroke 0.2s;
 }
 
 .badge:hover {
-  background-color: var(--background);
-  color: var(--text-secondary);
+  filter: brightness(1.1);
 }
 
-.badge[data-variant='highlight'] {
-  border: 4px solid var(--border); 
-  background-color: var(--highlight);
-  color: var(--text-primary); 
+.badge[data-variant="primary"] .badge-bg {
+  fill: var(--primary);
+  stroke: var(--dark);
+}
+.badge[data-variant="primary"] .badge-text {
+  fill: var(--default);
+}
+.badge[data-variant="primary"] .badge-diamond {
+  fill: var(--default);
+}
+.badge[data-variant="primary-hover"] .badge-bg {
+  fill: var(--primary-hover);
+  stroke: var(--dark);
+}
+.badge[data-variant="primary-active"] .badge-bg {
+  fill: var(--primary-active);
+  stroke: var(--dark);
 }
 
-.badge[data-variant='highlight']:hover {
-  background-color: var(--background);
-  color: var(--text-secondary);
+.badge[data-variant="secondary"] .badge-bg {
+  fill: var(--secondary);
+  stroke: var(--accent);
+}
+.badge[data-variant="secondary"] .badge-text {
+  fill: var(--accent);
+}
+.badge[data-variant="secondary"] .badge-diamond {
+  fill: var(--accent);
+}
+.badge[data-variant="secondary-hover"] .badge-bg {
+  fill: var(--secondary-hover);
+  stroke: var(--accent);
+}
+.badge[data-variant="secondary-active"] .badge-bg {
+  fill: var(--secondary-active);
+  stroke: var(--accent);
 }
 
-.badge[data-variant='highlight']:focus {
-  border-width: 2px; 
-  border-color: var(--ring); 
-  box-shadow: 0 0 0 3px var(--ring);
+.badge[data-variant="accent"] .badge-bg {
+  fill: var(--accent);
+  stroke: var(--dark);
+}
+.badge[data-variant="accent"] .badge-text {
+  fill: var(--dark);
+}
+.badge[data-variant="accent"] .badge-diamond {
+  fill: var(--dark);
+}
+.badge[data-variant="accent-hover"] .badge-bg {
+  fill: var(--accent-hover);
+  stroke: var(--dark);
+}
+.badge[data-variant="accent-active"] .badge-bg {
+  fill: var(--accent-active);
+  stroke: var(--dark);
 }
 
-.badge[data-variant='medium'] {
-  border: 4px solid var(--border); 
-  background-color: var(--medium); 
-  color: var(--medium-foreground);
+.badge[data-variant="highlight"] .badge-bg {
+  fill: var(--highlight);
+  stroke: var(--dark);
+}
+.badge[data-variant="highlight"] .badge-text {
+  fill: var(--dark);
+}
+.badge[data-variant="highlight"] .badge-diamond {
+  fill: var(--dark);
+}
+.badge[data-variant="highlight-hover"] .badge-bg {
+  fill: var(--highlight-hover);
+  stroke: var(--dark);
+}
+.badge[data-variant="highlight-active"] .badge-bg {
+  fill: var(--highlight-active);
+  stroke: var(--dark);
 }
 
-.badge[data-variant='medium']:hover {
-  background-color: var(--background);
-  color: var(--text-secondary);
+.badge[data-variant="medium"] .badge-bg {
+  fill: var(--medium);
+  stroke: var(--primary);
+}
+.badge[data-variant="medium"] .badge-text {
+  fill: var(--primary);
+}
+.badge[data-variant="medium"] .badge-diamond {
+  fill: var(--primary);
+}
+.badge[data-variant="medium-hover"] .badge-bg {
+  fill: var(--medium-hover);
+  stroke: var(--primary);
+}
+.badge[data-variant="medium-active"] .badge-bg {
+  fill: var(--medium-active);
+  stroke: var(--primary);
 }
 
-.badge[data-variant='medium']:focus {
-  background-color: var(--medium);
+.badge[data-variant="dark"] .badge-bg {
+  fill: var(--dark);
+  stroke: var(--highlight);
 }
-
-.badge[data-variant='outline'] {
-  color: var(--foreground);
-  background-color: transparent;
-  border: 4px solid var(--border);
+.badge[data-variant="dark"] .badge-text {
+  fill: var(--highlight);
 }
-
-.badge[data-variant='outline']:hover {
-  background-color: var(--background);
-  color: var(--text-secondary);
+.badge[data-variant="dark"] .badge-diamond {
+  fill: var(--highlight);
 }
-
-/* Additional variants used across app */
-.badge[data-variant='warning'] {
-  border: 4px solid var(--border);
-  background-color: #eab308; /* amber-500 */
-  color: #1f2937; /* slate-800 */
+.badge[data-variant="dark-hover"] .badge-bg {
+  fill: var(--dark-hover);
+  stroke: var(--highlight);
 }
-
-.badge[data-variant='secondary'] {
-  border: 4px solid var(--border);
-  background-color: var(--light);
-  color: var(--text-secondary);
+.badge[data-variant="dark-active"] .badge-bg {
+  fill: var(--dark-active);
+  stroke: var(--highlight);
 }

@@ -26,11 +26,18 @@ import {
 
 import Select from "../../../_components/UI/Select";
 import Divider from "../../../_components/UI/Divider";
+import Drawer from "../../../_components/UI/Drawer";
 
 const ComponentsPage = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(null);
+  const [drawerOverlayOpen, setDrawerOverlayOpen] = useState(false);
+  const [drawerOverlayRightOpen, setDrawerOverlayRightOpen] = useState(false);
+  const [drawerPushOpen, setDrawerPushOpen] = useState(false);
+  const [drawerPushLeftOpen, setDrawerPushLeftOpen] = useState(false);
+  const [drawerOverlayTopOpen, setDrawerOverlayTopOpen] = useState(false);
+  const [drawerOverlayBottomOpen, setDrawerOverlayBottomOpen] = useState(false);
 
   let options = [
     { id: 1, name: "Australia" },
@@ -76,68 +83,84 @@ const ComponentsPage = () => {
 
   return (
     <>
-      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Button size="lg">{`size="lg"`}</Button>
-        <Button size="md">{`size="md"`}</Button>
-        <Button size="sm">{`size="sm"`}</Button>
-        <Button size="icon">{`i`}</Button>
-      </div>
-      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Button variant="primary" size="md">Voltar</Button>
-        <Button variant="secondary" size="md">Ver Mais</Button>
-        <Button variant="accent" size="md">Confirmar</Button>
-      </div>
-      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Button variant="highlight" size="sm">Cancelar</Button>
-        <Button variant="medium" size="sm">Desfazer</Button>
-        <Button variant="helper" size="md">Ajuda</Button>
-      </div>
-      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Input type="email" placeholder="Default" />
-        <Input disabled type="email" placeholder="Disabled" />
-      </div>
-      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Card style={{ width: "300px" }}>
-          <CardHeader>
-            <CardTitle>Title</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "1em" }}
-            >
-              <Input type="email" placeholder="Input" />
-              <Input type="email" placeholder="Input 2" />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="highlight">Cancel</Button>
-            <Button variant="accent">Ok</Button>
-          </CardFooter>
-        </Card>
+      <div>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <Button size="lg">{`size="lg"`}</Button>
+          <Button size="md">{`size="md"`}</Button>
+          <Button size="sm">{`size="sm"`}</Button>
+          <Button size="icon">{`i`}</Button>
+        </div>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <Button variant="primary" size="md">Voltar</Button>
+          <Button variant="secondary" size="md">Ver Mais</Button>
+          <Button variant="accent" size="md">Confirmar</Button>
+        </div>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <Button variant="highlight" size="sm">Cancelar</Button>
+          <Button variant="medium" size="sm">Desfazer</Button>
+          <Button variant="helper" size="md">Ajuda</Button>
+        </div>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <Input type="email" placeholder="Default" />
+          <Input disabled type="email" placeholder="Disabled" />
+        </div>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <Card style={{ width: "300px" }}>
+            <CardHeader>
+              <CardTitle>Title</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "1em" }}
+              >
+                <Input type="email" placeholder="Input" />
+                <Input type="email" placeholder="Input 2" />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button variant="highlight">Cancel</Button>
+              <Button variant="accent">Ok</Button>
+            </CardFooter>
+          </Card>
 
-        <Card style={{ width: "350px" }}>
-          <CardHeader>
-            <CardTitle>Title</CardTitle>
-            <CardDescription>Description</CardDescription>
-            <Badge variant="secondary">Status</Badge>
-          </CardHeader>
-          <CardContent>
-            <ul>
-              <li>{`Aberama`}</li>
-              <li>{`Cleiton Rasta`}</li>
-              <li>{`Aborto do Cavaco`}</li>
-            </ul>
-          </CardContent>
-          <CardFooter>Footer</CardFooter>
-        </Card>
-      </div>
+          <Card style={{ width: "350px" }}>
+            <CardHeader>
+              <CardTitle>Title</CardTitle>
+              <CardDescription>Description</CardDescription>
+              <Badge variant="secondary">Status</Badge>
+            </CardHeader>
+            <CardContent>
+              <ul>
+                <li>{`Aberama`}</li>
+                <li>{`Cleiton Rasta`}</li>
+                <li>{`Aborto do Cavaco`}</li>
+              </ul>
+            </CardContent>
+            <CardFooter>Footer</CardFooter>
+          </Card>
+        </div>
 
-      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Divider color="yellow" />   
-        <Divider color="red" /> 
-        <Divider />                   
-      </div>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <Divider color="yellow" />   
+          <Divider color="red" /> 
+          <Divider />                   
+        </div>
 
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <Select
+            placeholder="MultipleSelect"
+            options={options}
+            multiselect
+          />
+        </div>
+        
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <DatePicker />
+        </div>
+
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <Select placeholder="Select" options={options} />
+        </div>
       <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
         <div style={{width: "300px"}}>
           <Select placeholder="small" options={options} size="sm" clearable />
@@ -157,38 +180,41 @@ const ComponentsPage = () => {
         <DatePicker />
       </div>
 
-      <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
-        <Badge>Badge</Badge>
-        <Badge variant="secondary">Secondary</Badge>
-        <Badge variant="outline">Outline</Badge>
-        <Badge variant="accent">Accent</Badge>
-      </div>      
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <Badge>Badge</Badge>
+          <Badge variant="primary">Primary</Badge>
+          <Badge variant="secondary">Secondary</Badge>
+          <Badge variant="highlight">Highlight</Badge>
+          <Badge variant="medium">Medium</Badge>
+          <Badge variant="accent">Accent</Badge>
+          <Badge variant="dark">Dark</Badge>
+          <Badge>Um teste com um texto grande</Badge>
+        </div>      
 
-      <div style={{ display: "flex", gap: "1em", padding: "20px", justifyContent: "space-between"}}>
-        <div style={{display: "flex"}}>
-            <div style={{display: "flex", flexDirection: "column"}}>
-              <h3>Padrão</h3>
-              <Alert variant="default">
-                <AlertTitle>Alerta Padrão</AlertTitle>
-                <AlertDescription>
-                  Este é um alerta com estilo padrão usando cores primárias.
-                </AlertDescription>
-              </Alert>
-            </div>
+        <div style={{ display: "flex", gap: "1em", padding: "20px", justifyContent: "space-between" }}>
+          <div style={{display: "flex"}}>
+              <div style={{display: "flex", flexDirection: "column"}}>
+                <h3>Padrão</h3>
+                <Alert variant="default">
+                  <AlertTitle>Alerta Padrão</AlertTitle>
+                  <AlertDescription>
+                    Este é um alerta com estilo padrão usando cores primárias.
+                  </AlertDescription>
+                </Alert>
+              </div>
+              <div style={{display: "flex", flexDirection: "column", marginLeft: "16px"}}>
+                <h3>Destrutivo</h3>
+                <Alert variant="destructive">
+                  <AlertTitle>Ação Destrutiva</AlertTitle>
+                  <AlertDescription>
+                    Esta ação não pode ser desfeita. Proceda com cautela.
+                  </AlertDescription>
+                </Alert>
+              </div>
+          </div>
+        </div> 
 
-            {/* Alert Destrutivo */}
-            <div style={{display: "flex", flexDirection: "column", marginLeft: "16px"}}>
-              <h3>Destrutivo</h3>
-              <Alert variant="destructive">
-                <AlertTitle>Ação Destrutiva</AlertTitle>
-                <AlertDescription>
-                  Esta ação não pode ser desfeita. Proceda com cautela.
-                </AlertDescription>
-              </Alert>
-            </div>
-        </div>
-
-        <div style={{display: "flex", justifyContent: "flex-end", flexDirection: "column"}}>
+        <div style={{display: "flex", gap: "1em", padding: "20px"}}>
           <Dropdown
             trigger={
               <>
@@ -224,7 +250,7 @@ const ComponentsPage = () => {
             </div>
           </Dropdown>
 
-          <div style={{ display: "flex", gap: "1em", padding: "20px" }}>
+          <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
             <Button onClick={() => setIsOpen(true)}>Show Dialog Modal</Button>
             {isOpen && (
               <Dialog onClose={() => setIsOpen(false)}>
@@ -249,7 +275,131 @@ const ComponentsPage = () => {
             )}
           </div>
         </div>
-      </div> 
+
+        <div style={{ display: "flex", gap: "1em", padding: "20px", flexWrap: "wrap" }}>
+          <Button onClick={() => setDrawerOverlayOpen(true)}>
+            Abrir Drawer Overlay Left
+          </Button>
+          <Button onClick={() => setDrawerOverlayRightOpen(true)}>
+            Abrir Drawer Overlay Right
+          </Button>
+          <Button onClick={() => setDrawerPushLeftOpen(true)}>
+            Abrir Drawer Push Left
+          </Button>
+          <Button onClick={() => setDrawerPushOpen(true)}>
+            Abrir Drawer Push Right
+          </Button>
+          <Button onClick={() => setDrawerOverlayTopOpen(true)}>
+            Abrir Drawer Overlay Top
+          </Button>
+          <Button onClick={() => setDrawerOverlayBottomOpen(true)}>
+            Abrir Drawer Overlay Bottom
+          </Button>
+        </div>
+        <Drawer
+          open={drawerOverlayOpen}
+          onClose={() => setDrawerOverlayOpen(false)}
+          type="overlay"
+          side="left"
+          width="320px"
+        >
+          <div style={{ padding: "24px" }}>
+            <h3>Drawer Overlay Left</h3>
+            <p>Esse drawer aparece por cima do conteúdo (lado esquerdo).</p>
+            <Button onClick={() => setDrawerOverlayOpen(false)}>Fechar</Button>
+          </div>
+        </Drawer>
+        <Drawer
+          open={drawerOverlayRightOpen}
+          onClose={() => setDrawerOverlayRightOpen(false)}
+          type="overlay"
+          side="right"
+          width="320px"
+        >
+          <div style={{ padding: "24px" }}>
+            <h3>Drawer Overlay Right</h3>
+            <p>Esse drawer aparece por cima do conteúdo (lado direito).</p>
+            <Button onClick={() => setDrawerOverlayRightOpen(false)}>Fechar</Button>
+          </div>
+        </Drawer>
+        <Drawer
+          open={drawerOverlayTopOpen}
+          onClose={() => setDrawerOverlayTopOpen(false)}
+          type="overlay"
+          side="top"
+          width="200px"
+        >
+          <div style={{ padding: "24px" }}>
+            <h3>Drawer Overlay Top</h3>
+            <p>Esse drawer aparece por cima do conteúdo (topo).</p>
+            <Button onClick={() => setDrawerOverlayTopOpen(false)}>Fechar</Button>
+          </div>
+        </Drawer>
+        <Drawer
+          open={drawerOverlayBottomOpen}
+          onClose={() => setDrawerOverlayBottomOpen(false)}
+          type="overlay"
+          side="bottom"
+          width="200px"
+        >
+          <div style={{ padding: "24px" }}>
+            <h3>Drawer Overlay Bottom</h3>
+            <p>Esse drawer aparece por cima do conteúdo (fundo).</p>
+            <Button onClick={() => setDrawerOverlayBottomOpen(false)}>Fechar</Button>
+          </div>
+        </Drawer>
+      </div>
+
+      <div style={{ overflowX: "hidden", position: "relative" }}>
+        <div
+          id="push-demo-container"
+          style={{
+            position: "relative",
+            background: "#f7f7f7",
+            minHeight: "200px",
+            padding: "32px",
+            transition: "margin 0.3s, padding 0.3s cubic-bezier(.4,0,.2,1)",
+            marginLeft: drawerPushLeftOpen ? "var(--drawer-width)" : undefined,
+            marginRight: drawerPushOpen ? "var(--drawer-width)" : undefined,
+          }}
+        >
+          <h2>Conteúdo do Container</h2>
+          <p>Este container serve para demonstrar o Drawer dos quatro lados.</p>
+          <p>E pipipi popopo! E agora um lorem ipsum</p>
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod 
+            tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
+            quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo 
+            consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse 
+            cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat 
+            non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        </div>
+        <Drawer
+          open={drawerPushLeftOpen}
+          onClose={() => setDrawerPushLeftOpen(false)}
+          type="push"
+          side="left"
+          width="var(--drawer-width)"
+        >
+          <div style={{ padding: "24px" }}>
+            <h3>Drawer Left</h3>
+            <p>Este Drawer empurra o conteúdo da página (lado esquerdo).</p>
+            <Button onClick={() => setDrawerPushLeftOpen(false)}>Fechar</Button>
+          </div>
+        </Drawer>
+        <Drawer
+          open={drawerPushOpen}
+          onClose={() => setDrawerPushOpen(false)}
+          type="push"
+          side="right"
+          width="var(--drawer-width)"
+        >
+          <div style={{ padding: "24px" }}>
+            <h3>Drawer Right</h3>
+            <p>Este Drawer empurra o conteúdo da página (lado direito).</p>
+            <Button onClick={() => setDrawerPushOpen(false)}>Fechar</Button>
+          </div>
+        </Drawer>
+      </div>
     </>
   );
 };

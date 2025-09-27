@@ -1,32 +1,32 @@
 @import "flatpickr/dist/flatpickr.min.css";
-@import url('https://fonts.googleapis.com/css2?family=New+Rocker&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=New+Rocker&display=swap");
 
 :root {
   /* Paleta Principal */
   --font-new-rocker: "New Rocker", system-ui;
   --default: #ffffff;
   --default-hover: #f0f0f0;
-  --primary: #A21E22; /* Vermelho intenso - elementos principais */
-  --primary-hover: #87000D;
-  --primary-active: #510F11;
+  --primary: #a21e22; /* Vermelho intenso - elementos principais */
+  --primary-hover: #87000d;
+  --primary-active: #510f11;
   --secondary: #711519; /* Vermelho escuro - elementos secundários */
-  --secondary-hover: #600A12;
-  --secondary-active: #390A0D;
-  --accent: #DB8026; /* Laranja - destaques */
-  --accent-hover: #CC6100;
-  --accent-active: #6D4114;
-  --highlight: #F5C711; /* Amarelo - elementos de atenção */
-  --highlight-hover: #DBA700;
-  --highlight-active: #7A6308;
-  --medium: #3F1217; /* Vinho - elementos estruturais */
-  --medium-hover: #1F090B;
+  --secondary-hover: #600a12;
+  --secondary-active: #390a0d;
+  --accent: #db8026; /* Laranja - destaques */
+  --accent-hover: #cc6100;
+  --accent-active: #6d4114;
+  --highlight: #f5c711; /* Amarelo - elementos de atenção */
+  --highlight-hover: #dba700;
+  --highlight-active: #7a6308;
+  --medium: #3f1217; /* Vinho - elementos estruturais */
+  --medium-hover: #1f090b;
   --medium-active: #161513;
   --dark: #000000; /* Preto - fundo principal */
 
   --background: #2d2d2d;
   --foreground: #ffffff;
   --border: #000;
-  --border-size: 4px;
+  --border-size: 1px;
   --ring: #000;
   --muted: #6c757d;
 
@@ -35,6 +35,13 @@
   --text-secondary: #fff;
   --glow-effect: 0 0 10px rgba(0, 230, 118, 0.5),
     0 0 20px rgba(0, 230, 118, 0.3); /* Efeito de brilho */
+
+  --navbar-height: 85px;
+
+  --drawer-width: 300px;
+  --drawer-width-mobile: 80vw;
+  --drawer-width-tablet: 50vw;
+  --drawer-width-large: 500px;
 }
 
 html {
@@ -46,9 +53,9 @@ body {
   padding: 0;
   background-color: var(--background);
   color: var(--text-primary);
-  font-family: var(--font-new-rocker);   /* ← AQUI */
+  font-family: var(--font-new-rocker); /* ← AQUI */
   font-size: 16px;
-  text-shadow: rgba(0,0,0,.01) 0 0 1px;
+  text-shadow: rgba(0, 0, 0, 0.01) 0 0 1px;
 }
 
 input,
@@ -66,7 +73,7 @@ main {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  text-shadow: rgba(0,0,0,.01) 0 0 1px;
+  text-shadow: rgba(0, 0, 0, 0.01) 0 0 1px;
   font-size: 16px;
 }
 
@@ -76,15 +83,15 @@ main {
 
 /* Track */
 ::-webkit-scrollbar-track {
-  background: transparent; 
+  background: transparent;
 }
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: black; 
+  background: black;
 }
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: black; 
+  background: black;
 }
